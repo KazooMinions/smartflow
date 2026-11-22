@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SmartFlow · Statistics</title>
-<link rel="stylesheet" href="/static/site.css">
+<link rel="stylesheet" href="static/site.css">
 <style>
   .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; padding: 0 20px 20px; align-items: start; }
   @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
@@ -44,8 +44,8 @@
 </head>
 <body>
 <header>
-  <a class="brand" href="/">🚦 SmartFlow</a>
-  <nav><a href="/" id="to-live">Live junction</a><a href="/stats" class="here">Statistics</a></nav>
+  <a class="brand" href="./">🚦 SmartFlow</a>
+  <nav><a href="./" id="to-live">Live junction</a><a href="stats" class="here" id="to-stats">Statistics</a></nav>
   <span class="where">IS-03, Monivong × Charles de Gaulle, Phnom Penh</span>
   <span class="badge">SIMULATED IN SUMO</span>
 </header>
@@ -98,12 +98,17 @@ const hhmm = t => `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Mat
 const num = n => Math.round(n).toLocaleString("en-US");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 let DAYS = [], data = null, road = "S_in", byTime = new Map();
+const STATIC = window.SmartFlowStatic;                  // set on the GitHub Pages copy, which reads files instead (pages.js)
+const STATS = STATIC ? "stats.html" : "stats";
+const api = async path => STATIC ? STATIC.api(path) : (await fetch(`api/${path}`)).json();
 
 async function init() {
+  $("#to-stats").href = STATS;
   try {
-    DAYS = await (await fetch("/api/days")).json();
+    DAYS = await api("days");
   } catch {
-    $("#tiles").innerHTML = `<p class="note">The website is not running. Start it with .venv/bin/python live.py, then reload.</p>`;
+    $("#tiles").innerHTML = STATIC ? `<p class="note">The statistics could not be loaded. Reload the page to try again.</p>`
+      : `<p class="note">The website is not running. Start it with .venv/bin/python live.py, then reload.</p>`;
     return;
   }
   for (const d of DAYS) $("#day").add(new Option(d.label, d.id));
@@ -124,8 +129,8 @@ function links() {                                       // the address, and the
   $("#time-label").textContent = hhmm(t);
   $("#about").textContent = d ? `${d.label} (simulated). ${d.about}` : "";
   const start = Math.min(77400, Math.max(FIRST, Math.floor(t / 900) * 900));
-  $("#to-live").href = `/?day=${encodeURIComponent(day)}&start=${hhmm(start)}`;
-  history.replaceState(null, "", `/stats?day=${encodeURIComponent(day)}&time=${hhmm(t)}`);
+  $("#to-live").href = `./?day=${encodeURIComponent(day)}&start=${hhmm(start)}`;
+  history.replaceState(null, "", `${STATS}?day=${encodeURIComponent(day)}&time=${hhmm(t)}`);
 }
 
 async function loadDay() {
@@ -133,7 +138,7 @@ async function loadDay() {
   data = null;
   $("#tiles").innerHTML = `<p class="note">Reading the results…</p>`;
   for (const id of ["#note", "#hourly", "#minis", "#measured", "#timings", "#arrivals", "#mae"]) $(id).innerHTML = "";
-  const result = await (await fetch(`/api/stats/${encodeURIComponent($("#day").value)}`)).json();
+  const result = await api(`stats/${encodeURIComponent($("#day").value)}`);
   if (result.error) { $("#tiles").innerHTML = `<p class="note">${esc(result.error)}</p>`; return; }
   data = result;
   byTime = new Map();
@@ -262,7 +267,7 @@ function chart(el, legend, { unit, x, labels, series, marker }) {
 
 async function liveInputs() {
   let r;
-  try { r = await (await fetch("/api/inputs")).json(); } catch { return; }
+  try { r = await api("inputs"); } catch { return; }
   const w = r.weather;
   const date = s => new Date(`${s}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   const weather = w.error ? `<p>Open-Meteo did not answer (${esc(w.error)}).</p>`

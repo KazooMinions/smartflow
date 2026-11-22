@@ -1,0 +1,30 @@
+/* Shared by the live junction page (live.html) and the statistics page (stats.html). */
+:root {
+  --ink: #14181D; --paper: #F6F4EF; --body: #4A4F57; --rule: #D9D4C9; --soft: #ECE8DF;
+  --accent: #EB6834; --accent-text: #B4441A; --blue: #2A78D6; --gray: #898781;
+  --good: #1E7A3A; --good-bg: #E3F1E6; --bad: #B42318; --bad-bg: #FBE4E1;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; align-items: center; gap: 10px 18px; flex-wrap: wrap; padding: 12px 20px; border-bottom: 1px solid var(--rule); }
+.brand { font-weight: 700; font-size: 20px; color: var(--ink); text-decoration: none; }
+nav { display: flex; gap: 4px; }
+nav a { padding: 6px 12px; border-radius: 8px; color: var(--body); font-weight: 600; text-decoration: none; }
+nav a:hover { background: var(--soft); }
+nav a.here { background: var(--ink); color: var(--paper); }
+.where { color: var(--body); }
+.badge { margin-left: auto; background: var(--accent); color: var(--ink); font-weight: 700; font-size: 12px; letter-spacing: .08em; padding: 4px 10px; border-radius: 999px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 20px; }
+.controls label { display: flex; align-items: center; gap: 6px; color: var(--body); }
+select, button { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--rule); background: #fff; color: var(--ink); }
+button { cursor: pointer; }
+button.primary { background: var(--ink); color: var(--paper); border-color: var(--ink); font-weight: 600; }
+button:disabled { opacity: .45; cursor: default; }
+.info { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0 20px 12px; color: var(--body); }
+.card { background: #fff; border: 1px solid var(--rule); border-radius: 14px; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+th, td { padding: 5px 8px; border-bottom: 1px solid var(--rule); text-align: right; }
+th { color: var(--body); font-weight: 600; }
+th:first-child, td:first-child { text-align: left; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: -1px; }
+footer { padding: 0 20px 24px; color: var(--body); font-size: 13px; max-width: 1100px; }

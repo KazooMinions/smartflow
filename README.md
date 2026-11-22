@@ -8,9 +8,21 @@ One real Phnom Penh intersection, **IS-03: Monivong Blvd × Charles de Gaulle Bl
 - **Assumed:** the signal phasing. JICA does not publish IS-03's real timing plan.
 - **Simulated:** rainy-day and holiday traffic, always. There are no counts for them, so label them as simulated. In step 4, the rain effects are calibrated to published studies, while the holiday effects are assumptions. The step 5 forecast is trained and tested on simulated days too.
 
+**Website: https://kazoominions.github.io/smartflow/** runs in any browser, with nothing to install: recordings of the live junction for the five test days, and the statistics. Code: https://github.com/KazooMinions/smartflow
+
 ## Quick start: run the website
 
-For teammates who got the project as a zip. You need Python 3.12 or 3.13. In the unzipped `smartflow` folder, on macOS or Linux:
+The website above plays recordings. To run the simulation itself, from any day and time, run the website on your own computer. You need Python 3.12 or 3.13 and git. Get the project:
+
+```bash
+git clone https://github.com/KazooMinions/smartflow.git
+```
+
+```bash
+cd smartflow
+```
+
+Then, on macOS or Linux:
 
 ```bash
 python3 -m venv .venv
@@ -26,7 +38,7 @@ python3 -m venv .venv
 
 On Windows, in PowerShell: `py -3.13 -m venv .venv`, then `.venv\Scripts\pip install -r requirements.txt`, then `.venv\Scripts\python live.py`.
 
-Then open http://localhost:8600: the live junction, with a link to the statistics. The install downloads a few hundred MB, mostly SUMO and scikit-learn. The zip leaves out SUMO's trip files and the JICA PDFs, which the website doesn't need. To run the simulations again, follow steps 1 to 5 below (`days.py` takes about 75 minutes).
+Then open http://localhost:8600: the live junction, with a link to the statistics. The install downloads a few hundred MB, mostly SUMO and scikit-learn. To get later changes, run `git pull` in the `smartflow` folder. The repository leaves out SUMO's trip files and the JICA PDFs, which the website doesn't need. To run the simulations again, follow steps 1 to 5 below (`days.py` takes about 75 minutes).
 
 ## Progress
 
@@ -643,11 +655,29 @@ Don't headline the exodus figures. Fixed-time collapses on that day, so its numb
 
 ### Share it with teammates
 
+The project is on GitHub: https://github.com/KazooMinions/smartflow. Teammates clone it and follow "Quick start" at the top of this README, then `git pull` for updates. The repository leaves out what is big and can be made again (see `.gitignore`): `.venv` (the setup makes it), SUMO's trip files (1.9 GB, made by steps 2 to 5) and the JICA PDFs (55 MB, linked under "Sources" in step 2).
+
+For someone without git, `share.py` packs the same files into `smartflow.zip`, next to the project folder:
+
 ```bash
 .venv/bin/python share.py
 ```
 
-It writes `smartflow.zip` next to the project folder, with the code, the website, the network, the traffic, the trained forecast and the results the website shows. It leaves out what is big and can be made again: `.venv` (the setup makes it), SUMO's trip files (1.9 GB, made by steps 2 to 5) and the JICA PDFs (55 MB, linked under "Sources" in step 2). Teammates follow "Quick start" at the top of this README.
+### The website on GitHub Pages
+
+https://kazoominions.github.io/smartflow/ is a copy of the website in `docs/`, which GitHub Pages serves from the `main` branch. GitHub Pages only serves files, so it can't run SUMO:
+
+- **Live junction:** it plays back recordings of the same two simulations: fixed-time, and SmartFlow with its forecast on. Each day is recorded for 90 minutes from its start time on the live page, and the heavy-rain day from 17:00 to 19:30, so that the jam and its end are both in it. The browser draws a picture every 2 simulated seconds and glides between them. Start, Pause, Speed, zoom and the numbers all work as on the computer, but only within the recorded times, and only with the forecast on.
+- **Statistics:** the same numbers, read from files.
+- **Live inputs:** the visitor's browser asks Open-Meteo for the weather itself, and reads the 2026 holiday calendar from a file.
+
+`web/pages.js` plays the recordings and answers the requests that `live.py` answers on a computer. `build_site.py` makes `docs/`:
+
+```bash
+.venv/bin/python build_site.py
+```
+
+It copies the pages and the data. It also records any day that has no recording yet: 2 to 6 MB each, 19 MB for all five, which take about 20 minutes to record with the days running side by side. After changing `web/` or the results, run it again (with `--record` to record every day again), then commit and push `docs/`. GitHub Pages updates within a minute or two.
 
 ### Limits
 

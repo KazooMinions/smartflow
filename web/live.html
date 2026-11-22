@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SmartFlow · Live junction</title>
-<link rel="stylesheet" href="/static/site.css">
+<link rel="stylesheet" href="static/site.css">
 <style>
   #clock { margin-left: auto; font: 700 30px/1 ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
   #weather { color: #2A5DA8; font-weight: 600; }
@@ -28,8 +28,8 @@
 </head>
 <body>
 <header>
-  <a class="brand" href="/">🚦 SmartFlow</a>
-  <nav><a href="/" class="here">Live junction</a><a href="/stats" id="to-stats">Statistics</a></nav>
+  <a class="brand" href="./">🚦 SmartFlow</a>
+  <nav><a href="./" class="here">Live junction</a><a href="stats" id="to-stats">Statistics</a></nav>
   <span class="where">IS-03, Monivong × Charles de Gaulle, Phnom Penh</span>
   <span class="badge">SIMULATED IN SUMO</span>
 </header>
@@ -83,6 +83,8 @@ const KIND_COLOR = ["#00AAFF", "#E6E6E6", "#FFC800", "#C8503C"];   // motorbike,
 const ORDER = ["N_in", "E_in", "S_in", "W_in"];
 const $ = s => document.querySelector(s);
 const params = new URLSearchParams(location.search);    // ?day=test3_rain_heavy_17-19&start=17:00 opens that day
+const STATIC = window.SmartFlowStatic;                  // set on the GitHub Pages copy, which plays recordings (pages.js)
+const STATS = STATIC ? "stats.html" : "stats";
 let NET = null, DAYS = [], view = null, playing = false, rainMm = 0, ws = null, drag = null, simTime = null;
 const sides = [0, 1].map(i => ({ root: $(`#side${i}`), canvas: $(`#side${i} canvas`), prev: new Map(), curr: new Map(), at: 0, data: null }));
 const hhmm = t => `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t % 3600 / 60)).padStart(2, "0")}`;
@@ -97,17 +99,17 @@ function statsLink() {                                   // the Statistics page 
   const [h, m] = $("#start").value.split(":").map(Number);
   const t = simTime ?? h * 3600 + m * 60;
   const at = Math.min(78300, Math.max(22500, Math.floor(t / 300) * 300));
-  $("#to-stats").href = `/stats?day=${encodeURIComponent($("#day").value)}&time=${hhmm(at)}`;
+  $("#to-stats").href = `${STATS}?day=${encodeURIComponent($("#day").value)}&time=${hhmm(at)}`;
 }
 
 function connect() {
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws = STATIC ? STATIC.replay() : new WebSocket(`ws://${location.host}/ws`);
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.type === "hello") hello(m);
     else if (m.type === "frame") frame(m);
     else if (m.type === "ready") { setPlaying(true); status(""); }
-    else if (m.type === "status") { status(m.text); if (m.text.startsWith("22:00")) setPlaying(false); }
+    else if (m.type === "status") { status(m.text); if (m.end) setPlaying(false); }
   };
   ws.onclose = () => { status("Disconnected. Is live.py still running? Start it again, then reload this page."); $("#play").disabled = true; };
 }
@@ -125,6 +127,10 @@ function hello(m) {
 
 function pickDay() {
   const d = DAYS.find(d => d.id === $("#day").value);
+  if (d.times) {                                         // a recording offers only the times it covers
+    $("#start").innerHTML = "";
+    for (const t of d.times) $("#start").add(new Option(t));
+  }
   $("#start").value = d.start;
   $("#about").textContent = d.about;
   simTime = null;

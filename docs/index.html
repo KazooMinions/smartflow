@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartFlow · Live junction</title>
+<link rel="stylesheet" href="static/site.css">
+<style>
+  #clock { margin-left: auto; font: 700 30px/1 ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums; }
+  #weather { color: #2A5DA8; font-weight: 600; }
+  #status { color: var(--accent-text); font-weight: 600; }
+  .sides { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 20px 16px; }
+  @media (max-width: 960px) { .sides { grid-template-columns: 1fr; } }
+  .side { overflow: hidden; }
+  .side h2 { margin: 0; padding: 12px 14px; font-size: 17px; display: flex; align-items: center; gap: 10px; }
+  .key { width: 22px; height: 4px; border-radius: 2px; }
+  canvas { display: block; width: 100%; height: 460px; background: #1B2027; touch-action: none; cursor: grab; }
+  canvas:active { cursor: grabbing; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 14px 2px; }
+  .stats b { display: block; font-size: 26px; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  .stats span { color: var(--body); font-size: 13px; }
+  .now { padding: 6px 14px; color: var(--body); min-height: 2.3em; }
+  .side table { width: calc(100% - 28px); margin: 0 14px 6px; }
+  #side0 .fc { display: none; }
+  ol { list-style: none; margin: 0; padding: 6px 14px 14px; font: 13px/1.6 ui-monospace, Menlo, monospace; color: var(--body); min-height: 7em; }
+  ol li { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+</style>
+<script src="static/pages.js"></script>
+</head>
+<body>
+<header>
+  <a class="brand" href="./">🚦 SmartFlow</a>
+  <nav><a href="./" class="here">Live junction</a><a href="stats" id="to-stats">Statistics</a></nav>
+  <span class="where">IS-03, Monivong × Charles de Gaulle, Phnom Penh</span>
+  <span class="badge">SIMULATED IN SUMO</span>
+</header>
+<div class="controls">
+  <label>Day <select id="day"></select></label>
+  <label>From <select id="start"></select></label>
+  <label><input type="checkbox" id="forecast" checked> AI forecast</label>
+  <button id="go" class="primary">Start</button>
+  <button id="play" disabled>Pause</button>
+  <label>Speed <select id="speed">
+    <option value="5">5×</option><option value="10" selected>10×</option><option value="20">20×</option><option value="50">50×</option>
+  </select></label>
+  <div id="clock">--:--:--</div>
+</div>
+<div class="info"><span id="about"></span><span id="weather"></span><span id="status">Connecting…</span></div>
+<main class="sides">
+  <article class="card side" id="side0">
+    <h2><span class="key" style="background:#898781"></span>Fixed-time plan</h2>
+    <canvas></canvas>
+    <div class="stats">
+      <div><b class="waiting">–</b><span>vehicles waiting now</span></div>
+      <div><b class="delay">–</b><span>average delay since you pressed Start</span></div>
+      <div><b class="done">–</b><span>vehicles through since then</span></div>
+    </div>
+    <div class="now"></div>
+    <table><thead><tr><th>Road</th><th>Waiting</th><th>Green (s)</th><th class="fc">Forecast, 15 min</th></tr></thead><tbody></tbody></table>
+    <ol class="log"></ol>
+  </article>
+  <article class="card side" id="side1">
+    <h2><span class="key" style="background:#EB6834"></span><span class="title">SmartFlow + forecast</span></h2>
+    <canvas></canvas>
+    <div class="stats">
+      <div><b class="waiting">–</b><span>vehicles waiting now</span></div>
+      <div><b class="delay">–</b><span>average delay since you pressed Start</span></div>
+      <div><b class="done">–</b><span>vehicles through since then</span></div>
+    </div>
+    <div class="now"></div>
+    <table><thead><tr><th>Road</th><th>Waiting</th><th>Max green (s)</th><th class="fc">Forecast, 15 min</th></tr></thead><tbody></tbody></table>
+    <ol class="log"></ol>
+  </article>
+</main>
+<footer>Both junctions get the same simulated traffic, built from JICA's 2022 counts at IS-03; rain and holiday days
+are what-if scenarios. Left: the fixed-time plan gives every road the same green, cycle after cycle. Right: SmartFlow
+holds each green until its queue has cleared, and its forecast shares out the maximum greens. Motorbikes are blue,
+cars white, tuk-tuks yellow and trucks red. Scroll to zoom, drag to move, double-click to reset the view.</footer>
+<script>
+const FRAME_MS = 100;                                   // live.py sends a picture every 0.1 s
+const GROUND = "#1B2027", ROAD = "#3A4049", MARK = "rgba(255,255,255,0.28)";
+const LIGHT = { G: "#2BD47D", g: "#2BD47D", y: "#FFC83D", Y: "#FFC83D", r: "#FF4D4D", R: "#FF4D4D" };
+const KIND_COLOR = ["#00AAFF", "#E6E6E6", "#FFC800", "#C8503C"];   // motorbike, car, tuk-tuk, truck: SUMO's colours
+const ORDER = ["N_in", "E_in", "S_in", "W_in"];
+const $ = s => document.querySelector(s);
+const params = new URLSearchParams(location.search);    // ?day=test3_rain_heavy_17-19&start=17:00 opens that day
+const STATIC = window.SmartFlowStatic;                  // set on the GitHub Pages copy, which plays recordings (pages.js)
+const STATS = STATIC ? "stats.html" : "stats";
+let NET = null, DAYS = [], view = null, playing = false, rainMm = 0, ws = null, drag = null, simTime = null;
+const sides = [0, 1].map(i => ({ root: $(`#side${i}`), canvas: $(`#side${i} canvas`), prev: new Map(), curr: new Map(), at: 0, data: null }));
+const hhmm = t => `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t % 3600 / 60)).padStart(2, "0")}`;
+
+for (let m = 6 * 60 + 15; m <= 21 * 60 + 30; m += 15) $("#start").add(new Option(hhmm(m * 60)));
+
+function send(msg) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg)); }
+function status(text) { $("#status").textContent = text; }
+function setPlaying(p) { playing = p; $("#play").disabled = false; $("#play").textContent = p ? "Pause" : "Play"; }
+
+function statsLink() {                                   // the Statistics page opens on the same day and time
+  const [h, m] = $("#start").value.split(":").map(Number);
+  const t = simTime ?? h * 3600 + m * 60;
+  const at = Math.min(78300, Math.max(22500, Math.floor(t / 300) * 300));
+  $("#to-stats").href = `${STATS}?day=${encodeURIComponent($("#day").value)}&time=${hhmm(at)}`;
+}
+
+function connect() {
+  ws = STATIC ? STATIC.replay() : new WebSocket(`ws://${location.host}/ws`);
+  ws.onmessage = e => {
+    const m = JSON.parse(e.data);
+    if (m.type === "hello") hello(m);
+    else if (m.type === "frame") frame(m);
+    else if (m.type === "ready") { setPlaying(true); status(""); }
+    else if (m.type === "status") { status(m.text); if (m.end) setPlaying(false); }
+  };
+  ws.onclose = () => { status("Disconnected. Is live.py still running? Start it again, then reload this page."); $("#play").disabled = true; };
+}
+
+function hello(m) {
+  NET = m.net; DAYS = m.days;
+  $("#day").innerHTML = "";
+  for (const d of DAYS) $("#day").add(new Option(d.label, d.id));
+  if (DAYS.some(d => d.id === params.get("day"))) $("#day").value = params.get("day");
+  pickDay();
+  if ([...$("#start").options].some(o => o.value === params.get("start"))) $("#start").value = params.get("start");
+  statsLink();
+  status("Choose a day and a start time, then press Start.");
+}
+
+function pickDay() {
+  const d = DAYS.find(d => d.id === $("#day").value);
+  if (d.times) {                                         // a recording offers only the times it covers
+    $("#start").innerHTML = "";
+    for (const t of d.times) $("#start").add(new Option(t));
+  }
+  $("#start").value = d.start;
+  $("#about").textContent = d.about;
+  simTime = null;
+  statsLink();
+}
+
+$("#day").onchange = pickDay;
+$("#start").onchange = () => { simTime = null; statsLink(); };
+$("#go").onclick = () => {
+  for (const s of sides) { s.prev = new Map(); s.curr = new Map(); s.data = null; s.root.querySelector(".log").innerHTML = ""; }
+  const withForecast = $("#forecast").checked;
+  $("#side1 .title").textContent = withForecast ? "SmartFlow + forecast" : "SmartFlow";
+  $("#side1 .key").style.background = withForecast ? "#EB6834" : "#2A78D6";
+  status("Starting…");
+  send({ cmd: "start", day: $("#day").value, start: $("#start").value, forecast: withForecast });
+};
+$("#play").onclick = () => { setPlaying(!playing); send({ cmd: playing ? "play" : "pause" }); };
+$("#speed").onchange = () => send({ cmd: "speed", value: Number($("#speed").value) });
+
+function frame(m) {
+  $("#clock").textContent = m.clock;
+  simTime = m.t;
+  statsLink();
+  rainMm = m.rain_mm;
+  $("#weather").textContent = rainMm >= 0.5 ? `Rain this hour: ${rainMm.toFixed(1)} mm (simulated)` : "";
+  m.sides.forEach((s, i) => {
+    const side = sides[i];
+    side.prev = side.curr;
+    side.curr = new Map();
+    for (let k = 0; k < s.veh.length; k += 5) side.curr.set(s.veh[k], [s.veh[k + 1], s.veh[k + 2], s.veh[k + 3], s.veh[k + 4]]);
+    side.at = performance.now();
+    side.data = s;
+    panel(side, s, i === 0);
+  });
+}
+
+function panel(side, s, fixed) {
+  const r = side.root, name = a => NET.names[a];
+  r.querySelector(".waiting").textContent = s.waiting;
+  r.querySelector(".delay").textContent = s.delay == null ? "–" : `${Math.round(s.delay)} s`;
+  r.querySelector(".done").textContent = s.done.toLocaleString("en-US");
+  r.querySelector(".now").textContent = !s.green ? "Yellow and all-red between two greens" : fixed
+    ? `Green: ${name(s.green.approach)}, ${s.green.elapsed} s of the plan's ${s.green.max} s`
+    : `Green: ${name(s.green.approach)}, ${s.green.elapsed} s so far. It ends when the queue has cleared, at most ${s.green.max} s`;
+  r.querySelector("tbody").innerHTML = ORDER.map(a =>
+    `<tr><td><span class="dot" style="background:${LIGHT[s.signal[NET.links[a]]] || LIGHT.r}"></span>${name(a)}</td>` +
+    `<td>${s.queues[a]}</td><td>${s.limits[a]}</td><td class="fc">${s.expected ? s.expected[a] : "–"}</td></tr>`).join("");
+  r.querySelector(".log").innerHTML = s.log.map(([t, road, len, queue, why]) =>
+    `<li>${t}  ${road.padEnd(11)} queue ${String(queue).padStart(3)} → green ${String(len).padStart(2)} s, ${why}</li>`).join("");
+}
+
+// Drawing: world metres (y up, junction at 0,0) to canvas pixels. Both canvases share one view.
+function path(ctx, pts, sx, sy) {
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => i ? ctx.lineTo(sx(x), sy(y)) : ctx.moveTo(sx(x), sy(y)));
+}
+
+function draw() {
+  const now = performance.now();
+  for (const side of sides) drawSide(side, now);
+  requestAnimationFrame(draw);
+}
+
+function drawSide(side, now) {
+  const c = side.canvas, dpr = window.devicePixelRatio || 1, W = c.clientWidth, H = c.clientHeight;
+  if (c.width !== Math.round(W * dpr) || c.height !== Math.round(H * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); }
+  const ctx = c.getContext("2d");
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = GROUND;
+  ctx.fillRect(0, 0, W, H);
+  if (!NET || !W) return;
+  if (!view) view = { x: 0, y: 0, s: Math.min(W, H) / 250 };
+  const sx = x => W / 2 + (x - view.x) * view.s, sy = y => H / 2 - (y - view.y) * view.s;
+
+  ctx.lineCap = "butt"; ctx.lineJoin = "round"; ctx.strokeStyle = ROAD;
+  for (const lane of NET.lanes) { ctx.lineWidth = lane.width * view.s; path(ctx, lane.shape, sx, sy); ctx.stroke(); }
+  ctx.fillStyle = ROAD; path(ctx, NET.junction, sx, sy); ctx.closePath(); ctx.fill();
+  ctx.strokeStyle = MARK; ctx.lineWidth = 1; ctx.setLineDash([6, 8]);
+  for (const mark of NET.marks) { path(ctx, mark, sx, sy); ctx.stroke(); }
+  ctx.setLineDash([]);
+
+  const signal = side.data ? side.data.signal : "";
+  ctx.lineWidth = Math.max(3, 1.2 * view.s);
+  for (const stop of NET.stops) {
+    ctx.strokeStyle = LIGHT[signal[stop.link]] || LIGHT.r;
+    ctx.beginPath(); ctx.moveTo(sx(stop.a[0]), sy(stop.a[1])); ctx.lineTo(sx(stop.b[0]), sy(stop.b[1])); ctx.stroke();
+  }
+
+  const t = Math.min(1, (now - side.at) / FRAME_MS);     // glide between the last two pictures
+  for (const [id, v] of side.curr) {
+    let [x, y, a, kind] = v;
+    const p = side.prev.get(id);
+    if (p) { x = p[0] + (x - p[0]) * t; y = p[1] + (y - p[1]) * t; a = p[2] + ((a - p[2] + 540) % 360 - 180) * t; }
+    const [len, wid] = NET.sizes[kind];
+    const w = Math.max(wid * view.s, 1.5), l = Math.max(len * view.s, 2.5);
+    ctx.save();
+    ctx.translate(sx(x), sy(y));
+    ctx.rotate(a * Math.PI / 180);                        // SUMO's angle: 0 = north, clockwise; position = front bumper
+    ctx.fillStyle = KIND_COLOR[kind];
+    ctx.fillRect(-w / 2, 0, w, l);
+    ctx.restore();
+  }
+
+  if (rainMm >= 0.5) {
+    ctx.fillStyle = "rgba(60,90,140,0.14)"; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "rgba(170,200,255,0.4)"; ctx.lineWidth = 1; ctx.beginPath();
+    for (let i = 0, n = Math.min(260, 40 + rainMm * 14); i < n; i++) {
+      const rx = Math.random() * W, ry = Math.random() * H;
+      ctx.moveTo(rx, ry); ctx.lineTo(rx - 4, ry + 12);
+    }
+    ctx.stroke();
+  }
+  if (side.data) labels(ctx, W, H, side.data, sx, sy);
+}
+
+function labels(ctx, W, H, s, sx, sy) {
+  ctx.font = "600 13px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const cx = sx(0), cy = sy(0), pad = 22;
+  for (const a of ORDER) {
+    const [ex, ey] = NET.arms[a];
+    let dx = sx(ex) - cx, dy = sy(ey) - cy;
+    const d = Math.hypot(dx, dy); dx /= d; dy /= d;
+    let k = d * 0.92;                                    // as far out along the road as fits on the canvas
+    if (dx > 0) k = Math.min(k, (W - pad - cx) / dx); if (dx < 0) k = Math.min(k, (pad - cx) / dx);
+    if (dy > 0) k = Math.min(k, (H - pad - cy) / dy); if (dy < 0) k = Math.min(k, (pad - cy) / dy);
+    if (!(k > 60)) continue;
+    const text = `${NET.names[a]} · ${s.queues[a]} waiting`, w = ctx.measureText(text).width + 18;
+    const x = Math.min(W - w / 2 - 4, Math.max(w / 2 + 4, cx + dx * k)), y = cy + dy * k;
+    ctx.fillStyle = "rgba(20,24,29,0.85)";
+    ctx.beginPath(); ctx.roundRect(x - w / 2, y - 12, w, 24, 12); ctx.fill();
+    ctx.fillStyle = "#F6F4EF"; ctx.fillText(text, x, y + 0.5);
+  }
+}
+
+for (const { canvas } of sides) {
+  canvas.addEventListener("wheel", e => {
+    e.preventDefault();
+    if (!view) return;
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    const wx = view.x + (e.offsetX - W / 2) / view.s, wy = view.y - (e.offsetY - H / 2) / view.s;
+    view.s = Math.min(25, Math.max(0.5, view.s * Math.exp(-e.deltaY * 0.0015)));
+    view.x = wx - (e.offsetX - W / 2) / view.s; view.y = wy + (e.offsetY - H / 2) / view.s;
+  }, { passive: false });
+  canvas.addEventListener("pointerdown", e => { if (view) { drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y }; canvas.setPointerCapture(e.pointerId); } });
+  canvas.addEventListener("pointermove", e => { if (drag) { view.x = drag.vx - (e.clientX - drag.x) / view.s; view.y = drag.vy + (e.clientY - drag.y) / view.s; } });
+  canvas.addEventListener("pointerup", () => { drag = null; });
+  canvas.addEventListener("dblclick", () => { view = null; });
+}
+
+connect();
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>

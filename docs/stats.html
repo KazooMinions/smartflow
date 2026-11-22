@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartFlow · Statistics</title>
+<link rel="stylesheet" href="static/site.css">
+<style>
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; padding: 0 20px 20px; align-items: start; }
+  @media (max-width: 1000px) { .layout { grid-template-columns: 1fr; } }
+  main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .pad { padding: 14px 16px; }
+  h2 { margin: 0 0 8px; font-size: 18px; }
+  h3 { margin: 16px 0 6px; font-size: 15px; }
+  h3 span { font-weight: 400; color: var(--body); }
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 760px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .tile { padding: 12px 14px; }
+  .k { color: var(--body); font-size: 13px; }
+  .v { font-size: 30px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .delta { display: inline-block; margin-top: 4px; font-size: 13px; font-weight: 600; padding: 1px 8px; border-radius: 999px; }
+  .delta.good { background: var(--good-bg); color: var(--good); }
+  .delta.bad { background: var(--bad-bg); color: var(--bad); }
+  .note { margin: 0; color: var(--body); font-size: 13px; }
+  .minis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .mini { border: 1px solid var(--rule); border-radius: 10px; padding: 8px 12px; }
+  .mini .v { font-size: 22px; }
+  .pad table { width: 100%; }
+  #timings td:last-child, #timings th:last-child { text-align: left; }
+  .cap { margin: 6px 0 0; color: var(--body); font-size: 13px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--body); margin: 2px 0 6px; }
+  .legend i, .tip i { display: inline-block; width: 18px; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
+  .tip i { width: 12px; }
+  .chart { position: relative; }
+  .chart svg { display: block; }
+  .chart .ax { font-size: 12px; fill: var(--body); }
+  .tip { position: absolute; display: none; pointer-events: none; background: var(--ink); color: var(--paper); font-size: 12px; line-height: 1.5; padding: 6px 9px; border-radius: 6px; white-space: nowrap; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 4px; }
+  .seg button.on { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  #time { width: min(440px, 60vw); }
+  #time-label { font-variant-numeric: tabular-nums; min-width: 3.2em; }
+  aside p { margin: 0 0 10px; }
+</style>
+<script src="static/pages.js"></script>
+</head>
+<body>
+<header>
+  <a class="brand" href="./">🚦 SmartFlow</a>
+  <nav><a href="./" id="to-live">Live junction</a><a href="stats" class="here" id="to-stats">Statistics</a></nav>
+  <span class="where">IS-03, Monivong × Charles de Gaulle, Phnom Penh</span>
+  <span class="badge">SIMULATED IN SUMO</span>
+</header>
+<div class="controls">
+  <label>Day <select id="day"></select></label>
+  <label>Time <input type="range" id="time" min="22500" max="78300" step="300" value="63000"><b id="time-label">17:30</b></label>
+</div>
+<div class="info"><span id="about"></span></div>
+<div class="layout">
+  <main>
+    <section class="tiles" id="tiles"></section>
+    <p class="note" id="note"></p>
+    <section class="card pad">
+      <h2>Average delay per vehicle, hour by hour</h2>
+      <div class="legend" id="legend-hourly"></div>
+      <div class="chart" id="hourly"></div>
+    </section>
+    <section class="card pad">
+      <h2 id="at-title">At 17:30</h2>
+      <div class="minis" id="minis"></div>
+      <h3>Measured and forecast <span>(vehicles)</span></h3>
+      <table id="measured"></table>
+      <p class="cap">Queue: vehicles standing still on the road. Arrived and counted: vehicles entering the road 300 m before
+        the junction. The forecast is the Random Forest's, made at this time.</p>
+      <h3>Signal timings <span>(seconds of green)</span></h3>
+      <table id="timings"></table>
+      <p class="cap">Every 5 minutes the forecast shares 200 s of maximum green per cycle by expected traffic (10 to 80 s
+        each). SmartFlow ends a green early once its queue has cleared. The latest green ran under the previous forecast's maximum.</p>
+    </section>
+    <section class="card pad">
+      <h2>Forecast vs counted arrivals</h2>
+      <div class="seg" id="roads"></div>
+      <div class="legend" id="legend-arrivals"></div>
+      <div class="chart" id="arrivals"></div>
+      <p class="cap" id="mae"></p>
+    </section>
+  </main>
+  <aside class="card pad" id="inputs"><h2>Live inputs, today</h2><p class="cap">Loading…</p></aside>
+</div>
+<footer>Everything on this page except the live inputs comes from SUMO simulations built from JICA's 2022 counts: the
+whole-day runs of step 5. Rain and holiday days are what-if scenarios, because no traffic counts exist for them.</footer>
+<script>
+const $ = s => document.querySelector(s);
+const FIRST = 22500, LAST = 78300;                      // 06:15 to 21:45: the forecast needs 15 minutes of counts, and so does its check
+const NAMES = { N_in: "Monivong N", E_in: "CdG East", S_in: "Monivong S", W_in: "CdG West" };
+const ORDER = ["E_in", "S_in", "W_in", "N_in"];         // the order in which the signal serves the roads
+const RUNS = [["fixed", "Fixed-time", "#898781", "7 5"], ["adaptive", "SmartFlow", "#2A78D6", ""], ["predict", "SmartFlow + forecast", "#EB6834", ""]];
+const params = new URLSearchParams(location.search);    // ?day=test3_rain_heavy_17-19&time=18:00 opens that day and time
+const hhmm = t => `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t % 3600 / 60)).padStart(2, "0")}`;
+const num = n => Math.round(n).toLocaleString("en-US");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+let DAYS = [], data = null, road = "S_in", byTime = new Map();
+const STATIC = window.SmartFlowStatic;                  // set on the GitHub Pages copy, which reads files instead (pages.js)
+const STATS = STATIC ? "stats.html" : "stats";
+const api = async path => STATIC ? STATIC.api(path) : (await fetch(`api/${path}`)).json();
+
+async function init() {
+  $("#to-stats").href = STATS;
+  try {
+    DAYS = await api("days");
+  } catch {
+    $("#tiles").innerHTML = STATIC ? `<p class="note">The statistics could not be loaded. Reload the page to try again.</p>`
+      : `<p class="note">The website is not running. Start it with .venv/bin/python live.py, then reload.</p>`;
+    return;
+  }
+  for (const d of DAYS) $("#day").add(new Option(d.label, d.id));
+  if (DAYS.some(d => d.id === params.get("day"))) $("#day").value = params.get("day");
+  const [h, m] = (params.get("time") || "").split(":").map(Number);
+  if (h >= 0 && m >= 0) $("#time").value = Math.min(LAST, Math.max(FIRST, Math.round((h * 3600 + m * 60) / 300) * 300));
+  $("#roads").innerHTML = ORDER.map(a => `<button data-road="${a}">${NAMES[a]}</button>`).join("");
+  $("#roads").onclick = e => { const b = e.target.closest("button"); if (b) { road = b.dataset.road; drawArrivals(); } };
+  $("#day").onchange = loadDay;
+  $("#time").oninput = () => { moment(); drawHourly(); drawArrivals(); links(); };
+  window.addEventListener("resize", () => { drawHourly(); drawArrivals(); });
+  loadDay();
+  liveInputs();
+}
+
+function links() {                                       // the address, and the Live junction link, follow the day and time
+  const t = Number($("#time").value), day = $("#day").value, d = DAYS.find(d => d.id === day);
+  $("#time-label").textContent = hhmm(t);
+  $("#about").textContent = d ? `${d.label} (simulated). ${d.about}` : "";
+  const start = Math.min(77400, Math.max(FIRST, Math.floor(t / 900) * 900));
+  $("#to-live").href = `./?day=${encodeURIComponent(day)}&start=${hhmm(start)}`;
+  history.replaceState(null, "", `${STATS}?day=${encodeURIComponent(day)}&time=${hhmm(t)}`);
+}
+
+async function loadDay() {
+  links();
+  data = null;
+  $("#tiles").innerHTML = `<p class="note">Reading the results…</p>`;
+  for (const id of ["#note", "#hourly", "#minis", "#measured", "#timings", "#arrivals", "#mae"]) $(id).innerHTML = "";
+  const result = await api(`stats/${encodeURIComponent($("#day").value)}`);
+  if (result.error) { $("#tiles").innerHTML = `<p class="note">${esc(result.error)}</p>`; return; }
+  data = result;
+  byTime = new Map();
+  for (const [t, a, arrived, queue, max, fc] of data.ticks) {
+    if (!byTime.has(t)) byTime.set(t, {});
+    byTime.get(t)[a] = { arrived, queue, max, fc };
+  }
+  tiles(); drawHourly(); moment(); drawArrivals();
+}
+
+function sum3(times, a) {                               // vehicles counted in three 5-minute periods
+  let total = 0;
+  for (const t of times) { const v = byTime.get(t)?.[a]?.arrived; if (v == null) return null; total += v; }
+  return total;
+}
+const last15 = (t, a) => sum3([t - 600, t - 300, t], a);
+const next15 = (t, a) => sum3([t + 300, t + 600, t + 900], a);
+
+function tiles() {
+  const { fixed: f, adaptive: s, predict: p } = data.runs;
+  const change = (a, b, what) => {
+    const pct = Math.round(100 * (a / b - 1)), good = pct <= 0;
+    return `<span class="delta ${good ? "good" : "bad"}">${good ? "↓" : "↑"} ${pct > 0 ? "+" : pct < 0 ? "−" : ""}${Math.abs(pct)}% ${what}</span>`;
+  };
+  $("#tiles").innerHTML = [
+    ["Fixed-time: average delay", `${f.avg.toFixed(1)} s`, ""],
+    ["SmartFlow: average delay", `${s.avg.toFixed(1)} s`, change(s.avg, f.avg, "vs fixed-time")],
+    ["SmartFlow + forecast", `${p.avg.toFixed(1)} s`, change(p.avg, s.avg, "vs SmartFlow")],
+    ["Waiting saved, vehicle-hours", num((f.avg - p.avg) * p.vehicles / 3600), `<div class="k">by SmartFlow + forecast, compared with fixed-time</div>`],
+  ].map(([k, v, extra]) => `<div class="card tile"><div class="k">${k}</div><div class="v">${v}</div>${extra}</div>`).join("");
+  $("#note").textContent = f.vehicles < p.vehicles
+    ? `With fixed-time signals, ${num(p.vehicles - f.vehicles)} vehicles were still queuing when the run stopped at 22:05. They are left out of its average, so the real fixed-time delay was even higher.`
+    : "";
+}
+
+function drawHourly() {
+  if (!data) return;
+  chart($("#hourly"), $("#legend-hourly"), {
+    unit: "seconds per vehicle", x: data.hours.map(h => h + 0.5),
+    labels: data.hours.map(h => `${hhmm(h * 3600)}–${hhmm((h + 1) * 3600)}`),
+    series: RUNS.map(([key, name, color, dash]) => ({ name, color, dash, y: data.runs[key].hourly })),
+    marker: Number($("#time").value) / 3600 });
+}
+
+function moment() {
+  if (!data) return;
+  const t = Number($("#time").value), h = Math.floor(t / 3600), hour = hhmm(h * 3600), mm = data.rain_mm[hour] ?? 0;
+  $("#at-title").textContent = `At ${hhmm(t)}`;
+  const level = mm < 0.5 ? "dry" : mm < 2.5 ? "light" : mm < 10 ? "moderate" : "heavy";
+  const latest = {};
+  for (const g of data.greens) { if (g[0] > t) break; latest[g[1]] = g; }   // greens are in time order
+  const clearance = data.plan_cycle - ORDER.reduce((sum, a) => sum + data.plan[a], 0);
+  const cycle = ORDER.every(a => latest[a]) ? ORDER.reduce((sum, a) => sum + Math.floor(latest[a][3]), 0) + clearance : null;
+  $("#minis").innerHTML = [
+    [`Rain ${hour}–${hhmm((h + 1) * 3600)} (simulated)`, `${mm.toFixed(1)} mm, ${level}`, ""],
+    ["Holiday pattern", data.holiday || "none", ""],
+    ["SmartFlow's latest cycle", cycle == null ? "–" : `${cycle} s`, `greens plus ${clearance} s of yellow and all-red; fixed-time: ${data.plan_cycle} s`],
+  ].map(([k, v, sub]) => `<div class="mini"><div class="k">${k}</div><div class="v">${v}</div>${sub ? `<div class="k">${sub}</div>` : ""}</div>`).join("");
+  const now = byTime.get(t) || {}, show = v => v == null ? "–" : num(v);
+  $("#measured").innerHTML = "<tr><th>Road</th><th>Queue now</th><th>Arrived, last 15 min</th><th>Forecast, next 15 min</th><th>Counted, next 15 min</th></tr>" +
+    ORDER.map(a => `<tr><td>${NAMES[a]}</td><td>${show(now[a]?.queue)}</td><td>${show(last15(t, a))}</td><td>${show(now[a]?.fc)}</td><td>${show(next15(t, a))}</td></tr>`).join("");
+  $("#timings").innerHTML = "<tr><th>Road</th><th>Fixed-time plan</th><th>Max green from this forecast</th><th>Latest green</th><th>Ended because</th></tr>" +
+    ORDER.map(a => {
+      const g = latest[a];
+      const why = !g ? "–" : g[4] === "queue cleared" ? "queue cleared" : `it reached its max green (${g[5]} s)`;
+      return `<tr><td>${NAMES[a]}</td><td>${data.plan[a]}</td><td>${show(now[a]?.max)}</td><td>${g ? Math.floor(g[3]) : "–"}</td><td>${why}</td></tr>`;
+    }).join("");
+}
+
+function drawArrivals() {
+  for (const b of $("#roads").children) b.classList.toggle("on", b.dataset.road === road);
+  if (!data) return;
+  const times = [...byTime.keys()].filter(t => t >= FIRST && t <= LAST).sort((a, b) => a - b);
+  const counted = times.map(t => next15(t, road)), predicted = times.map(t => byTime.get(t)[road]?.fc ?? null);
+  chart($("#arrivals"), $("#legend-arrivals"), {
+    unit: "vehicles in the next 15 min", x: times.map(t => t / 3600), labels: times.map(t => `${hhmm(t)}–${hhmm(t + 900)}`),
+    series: [{ name: "Counted", color: "#4A4F57", y: counted }, { name: "Forecast", color: "#EB6834", y: predicted }],
+    marker: Number($("#time").value) / 3600 });
+  const pairs = times.map((t, i) => [predicted[i], counted[i]]).filter(([p, c]) => p != null && c != null);
+  const off = pairs.reduce((sum, [p, c]) => sum + Math.abs(p - c), 0) / pairs.length;
+  const mean = pairs.reduce((sum, [, c]) => sum + c, 0) / pairs.length;
+  $("#mae").textContent = `Every 5 minutes the forecast predicts the next 15 minutes. On ${NAMES[road]} this day it was off by ${num(off)} vehicles on average, out of ${num(mean)}.`;
+}
+
+// A line chart over the day (x in hours, 06:00 to 22:00) with a tooltip for every series and the chosen time as a rule.
+function chart(el, legend, { unit, x, labels, series, marker }) {
+  legend.innerHTML = series.map(s => `<span><i style="border-color:${s.color};border-top-style:${s.dash ? "dashed" : "solid"}"></i>${s.name}</span>`).join("");
+  const W = Math.max(320, el.clientWidth), H = 280, m = { l: 58, r: 26, t: 10, b: 28 };   // r: room for "22:00"
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, x0 = 6, x1 = 22;
+  const top = Math.max(1, ...series.flatMap(s => s.y.filter(v => v != null)));
+  const raw = top / 4, mag = 10 ** Math.floor(Math.log10(raw)), f = raw / mag;
+  const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag, ymax = Math.ceil(top / step) * step;
+  const X = v => m.l + (v - x0) / (x1 - x0) * iw, Y = v => m.t + ih - v / ymax * ih;
+  let svg = `<svg width="${W}" height="${H}" role="img" aria-label="${unit} by time of day">`;
+  for (let v = 0; v <= ymax + 1e-9; v += step)
+    svg += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${v ? "#ECEAE3" : "#C3C2B7"}"/>` +
+           `<text class="ax" x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${num(v)}</text>`;
+  for (let hr = 6; hr <= 22; hr += 2) svg += `<text class="ax" x="${X(hr)}" y="${H - 8}" text-anchor="middle">${hhmm(hr * 3600)}</text>`;
+  svg += `<text class="ax" transform="translate(13 ${m.t + ih / 2}) rotate(-90)" text-anchor="middle">${unit}</text>`;
+  for (const s of series) {
+    let d = "", pen = false;
+    s.y.forEach((v, i) => { if (v == null) { pen = false; return; } d += `${pen ? "L" : "M"}${X(x[i]).toFixed(1)},${Y(v).toFixed(1)}`; pen = true; });
+    svg += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"${s.dash ? ` stroke-dasharray="${s.dash}"` : ""}/>`;
+  }
+  if (marker != null) svg += `<line x1="${X(marker)}" x2="${X(marker)}" y1="${m.t}" y2="${m.t + ih}" stroke="#14181D" stroke-width="1.5"/>`;
+  svg += `<line class="hover" y1="${m.t}" y2="${m.t + ih}" stroke="#898781" visibility="hidden"/><g class="dots"></g>`;
+  svg += `<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" pointer-events="all"/></svg><div class="tip"></div>`;
+  el.innerHTML = svg;
+  const box = el.querySelector("svg"), hit = el.querySelector("rect"), rule = el.querySelector(".hover");
+  const dots = el.querySelector(".dots"), tip = el.querySelector(".tip");
+  hit.addEventListener("mousemove", e => {
+    const at = x0 + (e.clientX - box.getBoundingClientRect().left - m.l) / iw * (x1 - x0);
+    let i = 0;
+    x.forEach((v, k) => { if (Math.abs(v - at) < Math.abs(x[i] - at)) i = k; });
+    rule.setAttribute("x1", X(x[i])); rule.setAttribute("x2", X(x[i])); rule.setAttribute("visibility", "visible");
+    dots.innerHTML = series.filter(s => s.y[i] != null)
+      .map(s => `<circle cx="${X(x[i])}" cy="${Y(s.y[i])}" r="4" fill="${s.color}" stroke="#fff" stroke-width="1.5"/>`).join("");
+    tip.innerHTML = `<b>${labels[i]}</b>` + series.map(s => `<div><i style="border-color:${s.color}"></i>${s.name}: ${s.y[i] == null ? "–" : num(s.y[i])}</div>`).join("");
+    tip.style.display = "block";
+    const right = X(x[i]) + 12;
+    tip.style.left = `${right + tip.offsetWidth > W ? X(x[i]) - 12 - tip.offsetWidth : right}px`;
+    tip.style.top = `${m.t + 6}px`;
+  });
+  hit.addEventListener("mouseleave", () => { rule.setAttribute("visibility", "hidden"); dots.innerHTML = ""; tip.style.display = "none"; });
+}
+
+async function liveInputs() {
+  let r;
+  try { r = await api("inputs"); } catch { return; }
+  const w = r.weather;
+  const date = s => new Date(`${s}T12:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  const weather = w.error ? `<p>Open-Meteo did not answer (${esc(w.error)}).</p>`
+    : `<p><b>Weather at IS-03</b> at ${esc(w.time)} (Open-Meteo): ${Math.round(w.temperature_c)} °C, ${esc(w.sky)}, ` +
+      `${w.rain_mm_15min.toFixed(1)} mm of rain in the last 15 minutes. Rain expected 06:00–22:00: ${w.rain_today_mm.toFixed(1)} mm.</p>`;
+  const today = `<p><b>Calendar</b>, ${date(r.today.date)}: ${esc(r.today.name || "not a public holiday")}. Traffic pattern: ${esc(r.today.pattern || "normal")}.</p>`;
+  const next = r.next ? `<p>Next holiday: ${date(r.next.date)}, ${esc(r.next.name)} (pattern: ${esc(r.next.pattern || "normal")}).</p>`
+    : "<p>No more holidays in the 2026 calendar.</p>";
+  $("#inputs").innerHTML = `<h2>Live inputs, today</h2>${weather}${today}${next}` +
+    `<p class="cap">These are real and live. There are no cameras or counters at the junction yet, so the rest of the site replays simulated days.</p>`;
+}
+
+init();
+</script>
+</body>
+</html>

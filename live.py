@@ -292,7 +292,7 @@ async def stream(ws):
             await ws.send_json(frame)
             if session.t >= DAY_END:
                 playing = False
-                await ws.send_json({"type": "status", "text": "22:00: the end of the counted day."})
+                await ws.send_json({"type": "status", "text": "22:00: the end of the counted day.", "end": True})
             await asyncio.sleep(max(0.0, FRAME - (time.monotonic() - began)))
     except (WebSocketDisconnect, RuntimeError):
         pass
