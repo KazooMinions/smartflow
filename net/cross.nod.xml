@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- IS-03: Monivong Blvd x Charles de Gaulle Blvd (St. 217), Phnom Penh. Leg bearings from OpenStreetMap:
+     Monivong 352/172 degrees, Charles de Gaulle 51/231 degrees. C is the signalised junction; the others are the far ends of 300 m arms. -->
+<nodes>
+    <node id="C" x="0" y="0" type="traffic_light"/>
+    <node id="N" x="-41.8" y="297.1"/>
+    <node id="S" x="41.8" y="-297.1"/>
+    <node id="E" x="233.1" y="188.8"/>
+    <node id="W" x="-233.1" y="-188.8"/>
+</nodes>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Build the network (from inside net/):  ../.venv/bin/netconvert -c cross.netccfg
+     Signal program: each approach gets its own green in turn (East, South, West, North, the order SUMO picks),
+     then 3 s yellow and 2 s all-red before the next approach. Default cycle = 4 x (30 + 3 + 2) = 140 s.
+     cross.con.xml sets which lanes may turn left on Monivong South and Charles de Gaulle West. -->
+<configuration>
+    <input>
+        <node-files value="cross.nod.xml"/>
+        <edge-files value="cross.edg.xml"/>
+        <connection-files value="cross.con.xml"/>
+    </input>
+    <output>
+        <output-file value="cross.net.xml"/>
+    </output>
+    <tls_building>
+        <tls.layout value="incoming"/>
+        <tls.green.time value="30"/>
+        <tls.yellow.time value="3"/>
+        <tls.allred.time value="2"/>
+    </tls_building>
+    <processing>
+        <no-turnarounds value="true"/>
+        <offset.disable-normalization value="true"/>
+    </processing>
+</configuration>

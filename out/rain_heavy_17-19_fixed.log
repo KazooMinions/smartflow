@@ -1,0 +1,27 @@
+Loading net-file from 'net/cross.net.xml' ... done (3ms).
+Loading additional-files from 'net/vtypes.add.xml' ... done (1ms).
+Loading additional-files from 'net/fixed_plan.add.xml' ... done (1ms).
+Loading route-files incrementally from 'routes/rain_heavy_17-19.rou.xml'
+Loading done.
+Simulation version 1.28.0 started with time: 21600.00.
+Simulation ended at time: 79500.00.
+Reason: The final simulation step has been reached.
+Performance:
+ Duration: 913.08s
+ Real time factor: 63.4116
+ UPS: 39953.180547
+Vehicles:
+ Inserted: 97539
+ Running: 0
+ Waiting: 0
+ Teleports: 0 (Collisions: 794)
+ Emergency Braking: 201
+Statistics (avg of 97539):
+ RouteLength: 593.61
+ Speed: 4.89
+ Duration: 187.00
+ WaitingTime: 98.10
+ TimeLoss: 128.58
+ DepartDelay: 23.42
+DijkstraRouter answered 117379 queries and explored 3.64 edges on average.
+DijkstraRouter spent 0.08s answering queries (0.00ms on average).

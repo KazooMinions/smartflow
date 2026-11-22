@@ -1,0 +1,48 @@
+***Starting server on port 54162 ***
+Loading net-file from 'net/cross.net.xml' ... done (4ms).
+Loading additional-files from 'net/vtypes.add.xml' ... done (2ms).
+Loading route-files incrementally from 'routes/jica_day.rou.xml'
+Loading done.
+Simulation version 1.28.0 started with time: 21600.00.
+ Retrying in 1 seconds
+SmartFlow's average green per approach and cycle length (s), hour by hour:
+hour       CdG East  Monivong S    CdG West  Monivong N   cycle
+06:00            11          17          14          11      73
+07:00            17          36          30          20     123
+08:00            15          27          23          19     105
+09:00            13          20          19          15      87
+10:00            14          19          16          17      86
+11:00            16          21          19          19      95
+12:00            15          20          17          17      89
+13:00            16          22          21          18      97
+14:00            13          21          19          17      91
+15:00            14          24          21          19      98
+16:00            17          23          19          21     100
+17:00            31          41          39          40     171
+18:00            19          22          19          22     101
+19:00            13          14          13          16      77
+20:00            11          12          11          11      64
+21:00            10          11          11          10      62
+Simulation ended at time: 79289.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 309.27s
+ TraCI-Duration: 52.96s
+ Real time factor: 186.531
+ UPS: 66022.960297
+Vehicles:
+ Inserted: 97539
+ Running: 0
+ Waiting: 0
+ Teleports: 0 (Collisions: 452)
+ Emergency Braking: 166
+Statistics (avg of 97539):
+ RouteLength: 593.62
+ Speed: 6.19
+ Duration: 104.67
+ WaitingTime: 35.43
+ TimeLoss: 47.44
+ DepartDelay: 0.26
+DijkstraRouter answered 97539 queries and explored 3.63 edges on average.
+DijkstraRouter spent 0.11s answering queries (0.00ms on average).
+Wrote out/adaptive_tripinfo.xml, out/adaptive_stats.xml, out/adaptive_greens.csv and out/adaptive_ticks.csv

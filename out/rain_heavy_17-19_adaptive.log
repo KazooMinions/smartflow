@@ -1,0 +1,48 @@
+***Starting server on port 53540 ***
+Loading net-file from 'net/cross.net.xml' ... done (2ms).
+Loading additional-files from 'net/vtypes.add.xml' ... done (0ms).
+Loading route-files incrementally from 'routes/rain_heavy_17-19.rou.xml'
+Loading done.
+Simulation version 1.28.0 started with time: 21600.00.
+ Retrying in 1 seconds
+SmartFlow's average green per approach and cycle length (s), hour by hour:
+hour       CdG East  Monivong S    CdG West  Monivong N   cycle
+06:00            11          17          14          11      73
+07:00            17          36          30          20     123
+08:00            15          27          23          19     105
+09:00            13          20          19          15      87
+10:00            14          19          16          17      86
+11:00            16          21          19          19      95
+12:00            15          20          17          17      89
+13:00            16          22          21          18      97
+14:00            13          21          19          17      91
+15:00            14          24          21          19      98
+16:00            17          23          19          21     100
+17:00            45          49          50          50     214
+18:00            47          50          50          50     219
+19:00            16          19          15          20      91
+20:00            11          12          11          11      65
+21:00            11          11          11          11      62
+Simulation ended at time: 79307.50.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 824.19s
+ TraCI-Duration: 44.76s
+ Real time factor: 70.0169
+ UPS: 36232.655176
+Vehicles:
+ Inserted: 97539
+ Running: 0
+ Waiting: 0
+ Teleports: 0 (Collisions: 516)
+ Emergency Braking: 172
+Statistics (avg of 97539):
+ RouteLength: 593.62
+ Speed: 5.63
+ Duration: 153.08
+ WaitingTime: 71.95
+ TimeLoss: 94.66
+ DepartDelay: 13.72
+DijkstraRouter answered 109337 queries and explored 3.65 edges on average.
+DijkstraRouter spent 0.09s answering queries (0.00ms on average).
+Wrote out/rain_heavy_17-19_adaptive_tripinfo.xml, out/rain_heavy_17-19_adaptive_stats.xml and out/rain_heavy_17-19_adaptive_greens.csv

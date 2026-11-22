@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Fixed-time run of IS-03 for JICA's survey day, 06:00-22:00 (times are seconds since midnight).
+     Traffic and the fixed plan both come from make_demand.py. Commands are in README.md. -->
+<configuration>
+    <input>
+        <net-file value="net/cross.net.xml"/>
+        <additional-files value="net/vtypes.add.xml,net/fixed_plan.add.xml"/>
+        <route-files value="routes/jica_day.rou.xml"/>
+    </input>
+    <time>
+        <begin value="21600"/>
+        <end value="79500"/>
+        <step-length value="0.5"/>
+    </time>
+    <processing>
+        <lateral-resolution value="0.8"/>
+        <collision.action value="warn"/>
+    </processing>
+    <output>
+        <tripinfo-output value="out/fixed_tripinfo.xml"/>
+        <statistic-output value="out/fixed_stats.xml"/>
+    </output>
+    <report>
+        <no-step-log value="true"/>
+        <no-warnings value="true"/>
+        <duration-log.statistics value="true"/>
+    </report>
+    <random_number>
+        <seed value="42"/>
+    </random_number>
+</configuration>

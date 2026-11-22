@@ -1,0 +1,19 @@
+# Source: JICA (2023) Data Collection Survey on Urban Transport in Phnom Penh, Final Report, Table 5.3.11 'Summary of Roadside Traffic Count Results' (pp. 5-29 to 5-30). Two-way daily traffic in PCU (2022 converted from 16-hour counts). peak_hour_pct = busiest hour as % of 24 hours (PCU basis). Vehicle shares are by vehicle count; the remainder is buses, trucks and others. daily_traffic_ratio is the table's 'Ratio of Daily Traffic' column, copied as printed.
+id,road,pcu_24h_2012,pcu_24h_2022,peak_hour_pct,daily_traffic_ratio,motorbike_pct,three_wheeler_pct,sedan_pct
+RS-1,Sisowat Blvd.,32138,40018,10,1.36,67,14,14
+RS-3,Sothearos (Rd. 3),,16044,8,1.57,71,16,11
+RS-4,Sothearos (Rd. 3),27387,38720,7,1.57,65,17,13
+RS-5,Norodom Blvd. (Rd. 41),37910,49487,8,1.48,64,11,20
+RS-7,Norodom Blvd. (Rd. 41),42549,43686,9,1.50,65,5,26
+RS-8,Norodom Blvd. (Rd. 41),27550,26444,8,1.49,68,8,19
+RS-9,Norodom Blvd. (Rd. 93),66374,65901,8,1.40,62,15,16
+RS-13,Mao Tse Toung Blvd. (Rd. 245),44831,44535,8,1.47,67,13,15
+RS-14,Road 271,49351,71109,7,1.50,72,11,12
+RS-15,Road Chekoslovaki (Rd. 169),40795,43565,7,1.46,70,11,14
+RS-16,Kampuchea Krom Blvd. (Rd. 128),33186,31316,8,1.45,62,16,17
+RS-17,Nerhu (Rd. 125),33100,33958,8,1.31,63,14,17
+RS-18,Kampuchea Krom Blvd. (Rd. 128),40734,34864,7,1.49,64,12,19
+RS-19,Mao Tse Toung Blvd. (Rd. 245),52822,48036,7,1.38,69,10,16
+RS-20,Kampuchea Krom Blvd. (Rd. 128),32910,37844,8,1.49,69,10,16
+RS-21,Road 271,53303,66595,7,1.51,66,13,14
+RS-24,Road 289,34417,38350,8,1.49,62,10,23

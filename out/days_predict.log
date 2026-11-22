@@ -1,0 +1,14 @@
+20 days (15 training, 5 test); 5 simulations to run
+   1 done   SmartFlow + forecast test1_normal  (9 min so far)
+   2 done   SmartFlow + forecast test2_rain_2025-08-10  (10 min so far)
+   3 done   SmartFlow + forecast test3_rain_heavy_17-19  (15 min so far)
+   4 done   SmartFlow + forecast test4_festival  (16 min so far)
+   5 done   SmartFlow + forecast test5_exodus  (17 min so far)
+
+Test days, average delay per vehicle (simulated):
+day                               fixed-time  SmartFlow  + forecast
+test1_normal                          68.7 s     47.7 s      48.4 s
+test2_rain_2025-08-10                 83.4 s     54.2 s      52.7 s
+test3_rain_heavy_17-19               152.0 s    108.4 s      82.6 s
+test4_festival                       204.3 s    109.0 s     100.0 s
+test5_exodus                         896.7 s    152.0 s     112.2 s

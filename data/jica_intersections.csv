@@ -1,0 +1,15 @@
+# Source: JICA (2023) Data Collection Survey on Urban Transport in Phnom Penh, Final Report, Figure 5.3.37 'Comparison of Inflow Traffic at Intersections (2012 and 2022)' (p. 5-31). Total traffic entering each intersection over 16 hours, in PCU. Locations: Figure 5.3.36 (p. 5-30). IS-15 was not surveyed in 2012.
+id,inflow_2012_pcu_16h,inflow_2022_pcu_16h
+IS-01,115669,145632
+IS-02,81345,75621
+IS-03,58586,56719
+IS-04,64103,64509
+IS-05,59281,64162
+IS-06,153116,180248
+IS-07,100230,77296
+IS-08,86465,76233
+IS-09,95422,171062
+IS-10,96350,137791
+IS-11,114672,144139
+IS-13,50077,65369
+IS-15,,112730

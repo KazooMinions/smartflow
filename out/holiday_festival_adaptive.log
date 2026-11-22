@@ -1,0 +1,48 @@
+***Starting server on port 53538 ***
+Loading net-file from 'net/cross.net.xml' ... done (2ms).
+Loading additional-files from 'net/vtypes.add.xml' ... done (1ms).
+Loading route-files incrementally from 'routes/holiday_festival.rou.xml'
+Loading done.
+Simulation version 1.28.0 started with time: 21600.00.
+ Retrying in 1 seconds
+SmartFlow's average green per approach and cycle length (s), hour by hour:
+hour       CdG East  Monivong S    CdG West  Monivong N   cycle
+06:00            11          17          14          11      73
+07:00            17          36          30          20     123
+08:00            15          27          23          19     105
+09:00            13          20          19          15      87
+10:00            14          19          16          17      86
+11:00            16          21          19          19      95
+12:00            15          20          17          17      89
+13:00            16          22          21          18      97
+14:00            13          21          19          17      91
+15:00            27          49          45          32     172
+16:00            30          50          44          36     180
+17:00            36          50          50          48     204
+18:00            35          50          50          46     202
+19:00            17          30          22          21     110
+20:00            11          15          13          11      71
+21:00            11          12          11          11      64
+Simulation ended at time: 79318.50.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 824.11s
+ TraCI-Duration: 46.27s
+ Real time factor: 70.0371
+ UPS: 36711.495875
+Vehicles:
+ Inserted: 106158
+ Running: 0
+ Waiting: 0
+ Teleports: 0 (Collisions: 644)
+ Emergency Braking: 218
+Statistics (avg of 106158):
+ RouteLength: 593.59
+ Speed: 5.44
+ Duration: 142.50
+ WaitingTime: 65.76
+ TimeLoss: 85.27
+ DepartDelay: 23.76
+DijkstraRouter answered 136230 queries and explored 3.70 edges on average.
+DijkstraRouter spent 0.11s answering queries (0.00ms on average).
+Wrote out/holiday_festival_adaptive_tripinfo.xml, out/holiday_festival_adaptive_stats.xml and out/holiday_festival_adaptive_greens.csv

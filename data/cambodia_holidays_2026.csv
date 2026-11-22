@@ -1,0 +1,23 @@
+# Cambodia's public holidays in 2026, set by Sub-Decree No. 167 of 18 Sep 2025, as listed by Andersen Cambodia (8 Oct 2025): https://kh.andersen.com/publications/cambodia-sets-official-2026-public-holiday-schedule/ . May 1 is both Labour Day and Visak Bochea (22 holidays on 21 dates). kind: new_year / pchum_ben / water_festival / national
+date,name,kind
+2026-01-01,International New Year's Day,national
+2026-01-07,Victory over Genocide Day,national
+2026-03-08,International Women's Day,national
+2026-04-14,Khmer New Year (day 1),new_year
+2026-04-15,Khmer New Year (day 2),new_year
+2026-04-16,Khmer New Year (day 3),new_year
+2026-05-01,International Labour Day and Visak Bochea,national
+2026-05-05,Royal Ploughing Ceremony,national
+2026-05-14,King Norodom Sihamoni's Birthday,national
+2026-06-18,Queen Mother Norodom Monineath Sihanouk's Birthday,national
+2026-09-24,Constitution Day,national
+2026-10-10,Pchum Ben (day 1),pchum_ben
+2026-10-11,Pchum Ben (day 2),pchum_ben
+2026-10-12,Pchum Ben (day 3),pchum_ben
+2026-10-15,Commemoration Day of King Father Norodom Sihanouk,national
+2026-10-29,Coronation Day of King Norodom Sihamoni,national
+2026-11-09,Independence Day,national
+2026-11-23,Water Festival (day 1),water_festival
+2026-11-24,Water Festival (day 2),water_festival
+2026-11-25,Water Festival (day 3),water_festival
+2026-12-29,Peace Day,national

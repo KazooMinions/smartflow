@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Left out for the same reasons as in share.py: SUMO's trip files are 30-50 MB each
+# and the website only needs the summaries made from them; the JICA reports are
+# their PDFs, and the counts taken from them are in data/*.csv.
+*_tripinfo.xml
+*_partial_*
+data/jica/
+data/jica_part2/
+data/jica_2015/

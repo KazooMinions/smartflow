@@ -1,0 +1,27 @@
+Loading net-file from 'net/cross.net.xml' ... done (2ms).
+Loading additional-files from 'net/vtypes.add.xml' ... done (1ms).
+Loading additional-files from 'net/fixed_plan.add.xml' ... done (1ms).
+Loading route-files incrementally from 'routes/holiday_festival.rou.xml'
+Loading done.
+Simulation version 1.28.0 started with time: 21600.00.
+Simulation ended at time: 79500.00.
+Reason: The final simulation step has been reached.
+Performance:
+ Duration: 1028.46s
+ Real time factor: 56.298
+ UPS: 38033.876996
+Vehicles:
+ Inserted: 106158
+ Running: 0
+ Waiting: 0
+ Teleports: 0 (Collisions: 965)
+ Emergency Braking: 228
+Statistics (avg of 106158):
+ RouteLength: 593.59
+ Speed: 4.60
+ Duration: 184.24
+ WaitingTime: 97.87
+ TimeLoss: 127.01
+ DepartDelay: 77.30
+DijkstraRouter answered 218823 queries and explored 3.76 edges on average.
+DijkstraRouter spent 0.11s answering queries (0.00ms on average).

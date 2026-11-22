@@ -1,0 +1,20 @@
+SIMULATED scenario rain_heavy_17-19: rain 17:00 heavy, 18:00 heavy; holiday none. Running fixed-time and SmartFlow (about 5 minutes)...
+Average delay per vehicle in seconds, by hour of arrival: fixed → adaptive (rain_heavy_17-19)
+hour      Monivong N     CdG East   Monivong S     CdG West          all
+06:00      51 →   34    61 →   34    54 →   34    56 →   38    55 →   35
+07:00      58 →   61    66 →   61   184 →   57   130 →   63   131 →   59
+08:00      57 →   51    65 →   52    77 →   49    72 →   51    69 →   50
+09:00      57 →   42    70 →   41    56 →   42    62 →   43    60 →   42
+10:00      60 →   42    90 →   43    58 →   40    55 →   44    63 →   42
+11:00      63 →   45    84 →   47    56 →   45    60 →   48    63 →   46
+12:00      58 →   45    71 →   41    54 →   43    59 →   44    59 →   43
+13:00      62 →   46    69 →   49    58 →   45    65 →   49    62 →   47
+14:00      61 →   45    66 →   44    55 →   42    65 →   47    61 →   44
+15:00      58 →   46    74 →   50    59 →   44    58 →   48    61 →   47
+16:00      61 →   46    73 →   48    57 →   46    58 →   51    61 →   48
+17:00     409 →  358   432 →  109   227 →  407   288 →  345   326 →  328
+18:00    1011 →  730   926 →  102   114 →  699   505 →  541   600 →  574
+19:00     893 →  192   976 →   51    50 →  141    93 →   73   540 →  129
+20:00      58 →   28   190 →   29    51 →   30    51 →   30    76 →   29
+21:00      52 →   28    56 →   27    46 →   27    51 →   27    51 →   27
+Whole day: fixed 152.0 s → adaptive 108.4 s average delay per vehicle (-29%), 97,539 vehicles, 1,182 vehicle-hours of waiting saved

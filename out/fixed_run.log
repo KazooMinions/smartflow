@@ -1,0 +1,28 @@
+Loading net-file from 'net/cross.net.xml' ... done (2ms).
+Loading additional-files from 'net/vtypes.add.xml' ... done (0ms).
+Loading additional-files from 'net/fixed_plan.add.xml' ... done (0ms).
+Loading route-files incrementally from 'routes/jica_day.rou.xml'
+Loading done.
+Simulation version 1.28.0 started with time: 21600.00.
+Simulation ended at time: 79500.00.
+Reason: The final simulation step has been reached.
+Performance:
+ Duration: 507.84s
+ Real time factor: 114.013
+ UPS: 48266.349766
+Vehicles:
+ Inserted: 97539
+ Running: 0
+ Waiting: 0
+ Teleports: 0 (Collisions: 686)
+ Emergency Braking: 198
+Statistics (avg of 97539):
+ RouteLength: 593.62
+ Speed: 5.48
+ Duration: 125.65
+ WaitingTime: 53.79
+ TimeLoss: 68.41
+ DepartDelay: 0.26
+DijkstraRouter answered 97539 queries and explored 3.63 edges on average.
+DijkstraRouter spent 0.11s answering queries (0.00ms on average).
+.venv/bin/sumo -c fixed.sumocfg  481.74s user 9.12s system 96% cpu 8:28.17 total

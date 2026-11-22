@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- How sumo-gui shows the run: realistic vehicle shapes, zoomed on the junction,
+     slowed down (delay in ms per step) so it is watchable on video. -->
+<viewsettings>
+    <scheme name="real world"/>
+    <delay value="40"/>
+    <viewport zoom="650" x="0" y="0"/>
+</viewsettings>

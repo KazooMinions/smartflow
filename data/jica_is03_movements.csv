@@ -1,0 +1,16 @@
+# Source: JICA (2023) Data Collection Survey on Urban Transport in Phnom Penh, Final Report, Appendix 1: Figure 1.3.79 and Table 1.3.25 'Result of Traffic Count at IS-03' (p. Appendix 1-76). IS-03 = Monivong Blvd x Charles de Gaulle Blvd (St. 217), weekday 06:00-22:00 count, PCU per 16 hours, 2022.
+# Model approaches: N_in = Monivong North, S_in = Monivong South, E_in = Charles de Gaulle East, W_in = Charles de Gaulle West.
+# Movement 9 is printed as 6,387 in the figure; 636 is the only value that matches both the table's IN total for Charles de Gaulle East (8,949) and its OUT total for Monivong North (17,412).
+movement,from_approach,model_approach,to_leg,turn,pcu_16h
+10,Monivong North,N_in,Charles de Gaulle East,left,1109
+11,Monivong North,N_in,Monivong South,through,12500
+12,Monivong North,N_in,Charles de Gaulle West,right,1985
+4,Monivong South,S_in,Charles de Gaulle West,left,5849
+5,Monivong South,S_in,Monivong North,through,13291
+6,Monivong South,S_in,Charles de Gaulle East,right,690
+7,Charles de Gaulle East,E_in,Monivong South,left,1926
+8,Charles de Gaulle East,E_in,Charles de Gaulle West,through,6387
+9,Charles de Gaulle East,E_in,Monivong North,right,636
+1,Charles de Gaulle West,W_in,Monivong North,left,3484
+2,Charles de Gaulle West,W_in,Charles de Gaulle East,through,7881
+3,Charles de Gaulle West,W_in,Monivong South,right,980

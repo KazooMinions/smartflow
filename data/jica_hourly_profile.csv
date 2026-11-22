@@ -1,0 +1,26 @@
+# Source: JICA (2023) Data Collection Survey on Urban Transport in Phnom Penh, Final Report, Figure 5.3.21 'Hourly Fluctuation' (p. 5-21). Screen-line survey, % of 24-hour traffic in PCU. Values read from the PDF's vector chart; each column sums to about 100.7% because of that reading, so scripts rescale to 100%.
+hour,pct_both_directions,pct_to_city,pct_from_city
+6,4.64,5.37,3.89
+7,6.87,8.37,5.35
+8,6.07,6.58,5.56
+9,5.78,5.97,5.59
+10,5.66,5.78,5.52
+11,5.93,5.69,6.19
+12,5.71,5.54,5.88
+13,5.80,5.93,5.66
+14,5.95,5.97,5.93
+15,5.90,5.93,5.90
+16,6.31,6.10,6.53
+17,7.45,7.09,7.81
+18,6.17,5.37,6.99
+19,5.08,4.21,5.95
+20,3.75,3.51,4.02
+21,3.09,2.78,3.41
+22,2.15,2.00,2.32
+23,1.45,1.33,1.55
+0,1.14,1.18,1.11
+1,0.94,0.99,0.87
+2,0.77,0.82,0.72
+3,0.84,0.92,0.77
+4,1.14,1.16,1.14
+5,2.10,2.10,2.10

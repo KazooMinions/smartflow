@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Adaptive run of IS-03: the same day, traffic and seed as fixed.sumocfg, but without the fixed plan.
+     adaptive.py starts SUMO with this file and sets every green through TraCI. There is no end time:
+     adaptive.py stops when the last vehicle has left. Commands are in README.md. -->
+<configuration>
+    <input>
+        <net-file value="net/cross.net.xml"/>
+        <additional-files value="net/vtypes.add.xml"/>
+        <route-files value="routes/jica_day.rou.xml"/>
+    </input>
+    <time>
+        <begin value="21600"/>
+        <step-length value="0.5"/>
+    </time>
+    <processing>
+        <lateral-resolution value="0.8"/>
+        <collision.action value="warn"/>
+    </processing>
+    <output>
+        <tripinfo-output value="out/adaptive_tripinfo.xml"/>
+        <statistic-output value="out/adaptive_stats.xml"/>
+    </output>
+    <report>
+        <no-step-log value="true"/>
+        <no-warnings value="true"/>
+        <duration-log.statistics value="true"/>
+    </report>
+    <random_number>
+        <seed value="42"/>
+    </random_number>
+</configuration>

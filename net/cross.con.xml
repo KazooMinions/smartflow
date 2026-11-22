@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Lane use on the two approaches where about 30% of traffic turns left (JICA movements 4 and 1):
+     Monivong South (S_in) and Charles de Gaulle West (W_in). netconvert's default gives a left turn only the
+     leftmost lane, shared with through traffic, which makes that one lane the bottleneck of the whole junction.
+     In Phnom Penh, left-turning motorbikes use the whole left side of the road, so here left turns get two lanes:
+     the leftmost lane is left-only, the next one is through or left. Paths inside the junction never cross.
+     Once any connection is given for a road, netconvert stops guessing the rest for that road, so every turn
+     of these two approaches is listed. -->
+<connections>
+    <!-- Monivong South: lane 0 = right + through, lane 1 = through, lane 2 = through + left, lane 3 = left -->
+    <connection from="S_in" to="E_out" fromLane="0" toLane="0"/>
+    <connection from="S_in" to="N_out" fromLane="0" toLane="0"/>
+    <connection from="S_in" to="N_out" fromLane="1" toLane="1"/>
+    <connection from="S_in" to="N_out" fromLane="2" toLane="2"/>
+    <connection from="S_in" to="W_out" fromLane="2" toLane="1"/>
+    <connection from="S_in" to="W_out" fromLane="3" toLane="2"/>
+    <!-- Charles de Gaulle West: lane 0 = right + through, lane 1 = through + left, lane 2 = left -->
+    <connection from="W_in" to="S_out" fromLane="0" toLane="0"/>
+    <connection from="W_in" to="E_out" fromLane="0" toLane="0"/>
+    <connection from="W_in" to="E_out" fromLane="1" toLane="1"/>
+    <connection from="W_in" to="N_out" fromLane="1" toLane="2"/>
+    <connection from="W_in" to="N_out" fromLane="2" toLane="3"/>
+</connections>

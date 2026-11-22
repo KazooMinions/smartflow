@@ -1,0 +1,48 @@
+***Starting server on port 53541 ***
+Loading net-file from 'net/cross.net.xml' ... done (2ms).
+Loading additional-files from 'net/vtypes.add.xml' ... done (1ms).
+Loading route-files incrementally from 'routes/holiday_exodus.rou.xml'
+Loading done.
+Simulation version 1.28.0 started with time: 21600.00.
+ Retrying in 1 seconds
+SmartFlow's average green per approach and cycle length (s), hour by hour:
+hour       CdG East  Monivong S    CdG West  Monivong N   cycle
+06:00            11          17          14          11      73
+07:00            17          36          30          20     123
+08:00            15          27          23          19     105
+09:00            13          20          19          15      87
+10:00            14          19          16          17      86
+11:00            16          21          19          19      95
+12:00            36          34          31          44     165
+13:00            32          32          28          42     154
+14:00            41          38          32          45     177
+15:00            34          33          31          43     160
+16:00            42          39          31          47     179
+17:00            50          50          48          50     219
+18:00            48          38          33          50     189
+19:00            35          28          24          50     157
+20:00            14          13          11          18      76
+21:00            11          11          11          11      63
+Simulation ended at time: 79313.00.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 901.67s
+ TraCI-Duration: 49.37s
+ Real time factor: 64.0067
+ UPS: 37797.553653
+Vehicles:
+ Inserted: 110449
+ Running: 0
+ Waiting: 0
+ Teleports: 0 (Collisions: 808)
+ Emergency Braking: 259
+Statistics (avg of 110449):
+ RouteLength: 593.68
+ Speed: 5.11
+ Duration: 154.28
+ WaitingTime: 74.50
+ TimeLoss: 97.05
+ DepartDelay: 54.90
+DijkstraRouter answered 173620 queries and explored 3.66 edges on average.
+DijkstraRouter spent 0.11s answering queries (0.00ms on average).
+Wrote out/holiday_exodus_adaptive_tripinfo.xml, out/holiday_exodus_adaptive_stats.xml and out/holiday_exodus_adaptive_greens.csv

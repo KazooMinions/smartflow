@@ -1,0 +1,34 @@
+20 days (15 training, 5 test); 25 simulations to run
+   1 done   SmartFlow  train02_normal  (9 min so far)
+   2 done   SmartFlow  train01_normal  (10 min so far)
+   3 done   SmartFlow  train04_rain_2023-06-20  (10 min so far)
+   4 done   SmartFlow  train03_normal  (10 min so far)
+   5 done   SmartFlow  train07_rain_2022-05-26  (10 min so far)
+   6 done   SmartFlow  train05_rain_2023-09-23  (10 min so far)
+   7 done   SmartFlow  train08_rain_2024-06-25  (12 min so far)
+   8 done   SmartFlow  train06_rain_2024-08-26  (14 min so far)
+   9 done   SmartFlow  train14_quiet  (16 min so far)
+  10 done   SmartFlow  train15_quiet+rain_2022-08-20  (17 min so far)
+  11 done   SmartFlow  train09_rain_2023-06-10  (20 min so far)
+  12 done   SmartFlow  test1_normal  (24 min so far)
+  13 done   fixed-time test1_normal  (26 min so far)
+  14 done   SmartFlow  test2_rain_2025-08-10  (28 min so far)
+  15 done   SmartFlow  train12_festival  (31 min so far)
+  16 done   SmartFlow  train10_exodus  (32 min so far)
+  17 done   fixed-time test2_rain_2025-08-10  (33 min so far)
+  18 done   SmartFlow  train13_festival+rain_2022-09-17  (40 min so far)
+  19 done   SmartFlow  test3_rain_heavy_17-19  (45 min so far)
+  20 done   SmartFlow  train11_exodus+rain_2022-06-19  (46 min so far)
+  21 done   SmartFlow  test4_festival  (49 min so far)
+  22 done   fixed-time test3_rain_heavy_17-19  (50 min so far)
+  23 done   SmartFlow  test5_exodus  (55 min so far)
+  24 done   fixed-time test4_festival  (57 min so far)
+  25 done   fixed-time test5_exodus  (74 min so far)
+
+Test days, average delay per vehicle (simulated):
+day                               fixed-time  SmartFlow  + forecast
+test1_normal                          68.7 s     47.7 s           -
+test2_rain_2025-08-10                 83.4 s     54.2 s           -
+test3_rain_heavy_17-19               152.0 s    108.4 s           -
+test4_festival                       204.3 s    109.0 s           -
+test5_exodus                         896.7 s    152.0 s           -

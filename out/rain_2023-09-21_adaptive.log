@@ -1,0 +1,48 @@
+***Starting server on port 53539 ***
+Loading net-file from 'net/cross.net.xml' ... done (1ms).
+Loading additional-files from 'net/vtypes.add.xml' ... done (0ms).
+Loading route-files incrementally from 'routes/rain_2023-09-21.rou.xml'
+Loading done.
+Simulation version 1.28.0 started with time: 21600.00.
+ Retrying in 1 seconds
+SmartFlow's average green per approach and cycle length (s), hour by hour:
+hour       CdG East  Monivong S    CdG West  Monivong N   cycle
+06:00            11          17          14          11      73
+07:00            17          36          30          20     123
+08:00            15          27          23          19     105
+09:00            13          20          19          15      87
+10:00            14          19          16          17      86
+11:00            21          26          23          24     114
+12:00            16          21          18          20      93
+13:00            18          27          25          22     111
+14:00            14          21          19          18      92
+15:00            20          30          26          25     121
+16:00            37          43          41          44     185
+17:00            45          50          50          50     216
+18:00            32          43          38          42     175
+19:00            15          15          13          16      79
+20:00            11          13          11          11      67
+21:00            11          11          11          11      63
+Simulation ended at time: 79298.50.
+Reason: TraCI requested termination.
+Performance:
+ Duration: 625.16s
+ TraCI-Duration: 43.51s
+ Real time factor: 92.2935
+ UPS: 41907.953606
+Vehicles:
+ Inserted: 97539
+ Running: 0
+ Waiting: 0
+ Teleports: 0 (Collisions: 560)
+ Emergency Braking: 163
+Statistics (avg of 97539):
+ RouteLength: 593.61
+ Speed: 5.54
+ Duration: 134.30
+ WaitingTime: 57.44
+ TimeLoss: 75.01
+ DepartDelay: 2.12
+DijkstraRouter answered 99058 queries and explored 3.64 edges on average.
+DijkstraRouter spent 0.09s answering queries (0.00ms on average).
+Wrote out/rain_2023-09-21_adaptive_tripinfo.xml, out/rain_2023-09-21_adaptive_stats.xml and out/rain_2023-09-21_adaptive_greens.csv
