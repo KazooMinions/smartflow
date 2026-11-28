@@ -204,7 +204,8 @@ function moment() {
   $("#timings").innerHTML = "<tr><th>Road</th><th>Fixed-time plan</th><th>Max green from this forecast</th><th>Latest green</th><th>Ended because</th></tr>" +
     ORDER.map(a => {
       const g = latest[a];
-      const why = !g ? "–" : g[4] === "queue cleared" ? "queue cleared" : `it reached its max green (${g[5]} s)`;
+      const why = !g ? "–" : g[4] === "queue cleared" ? "queue cleared"
+        : g[4] === "exit blocked" ? "nobody could cross: the road ahead was full" : `it reached its max green (${g[5]} s)`;
       return `<tr><td>${NAMES[a]}</td><td>${data.plan[a]}</td><td>${show(now[a]?.max)}</td><td>${g ? Math.floor(g[3]) : "–"}</td><td>${why}</td></tr>`;
     }).join("");
 }

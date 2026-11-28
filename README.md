@@ -2,6 +2,8 @@
 
 One real Phnom Penh intersection, **IS-03: Monivong Blvd × Charles de Gaulle Blvd (St. 217)**, simulated in SUMO 1.28 with traffic from JICA's 2022 counts. The goal is a signal controller that adapts its green times to the traffic and measurably beats fixed-time signals.
 
+**New here, or judging?** [HOW_IT_WORKS.md](HOW_IT_WORKS.md) explains on one page how the algorithm works, what every file does and where each result comes from.
+
 **Data honesty, for the video and slides:**
 - **Measured (JICA 2022 weekday count):** traffic volumes, turning movements, hour-by-hour pattern and vehicle mix.
 - **Calibrated:** lane counts and left-turn lanes are "effective width" settings, not the painted lanes (see step 2).
@@ -46,9 +48,9 @@ Then open http://localhost:8600: the live junction, with a link to the statistic
 |---|---|---|
 | 1 | SUMO installed, four-way intersection, fixed-time run | ✅ done 2026-11-21 |
 | 2 | JICA traffic volumes → CSV → arrival rates per approach | ✅ done 2026-11-21 |
-| 3 | TraCI adaptive control vs fixed-time | ✅ done 2026-11-21 |
+| 3 | TraCI adaptive control vs fixed-time (exit check for jammed roads added 2026-11-24) | ✅ done 2026-11-21 |
 | 4 | Open-Meteo weather, holiday calendar, rain/holiday scenarios | ✅ done 2026-11-22 |
-| 5 | Random Forest demand forecast that shares out the green | ✅ done 2026-11-22 |
+| 5 | Random Forest demand forecast that shares out the green (seed check on the normal day added 2026-11-25) | ✅ done 2026-11-22 |
 | 6 | Website: the live junction (fixed-time and SmartFlow side by side) and a statistics page | ✅ done 2026-11-22 |
 
 ## Setup (once)
@@ -233,6 +235,7 @@ For each approach in turn:
 1. When its light turns green, SmartFlow notes every vehicle standing still on it. That's the queue.
 2. The light stays green until all of those vehicles have crossed the stop line and nothing on the approach is standing still, so vehicles that join the back of the queue go too.
 3. Every green lasts at least 10 s and at most 50 s.
+4. **The exit check:** if nobody has crossed the stop line for 5 s while vehicles are still standing still, SmartFlow looks at the roads they're heading into. If one of them has vehicles standing still within 30 m of the junction, it's full, for example because a jam is spilling back from the next junction. The green then ends at once instead of running to 50 s, and the time goes to roads that can move. See [What if the road ahead is jammed?](#what-if-the-road-ahead-is-jammed)
 
 **Safety:** SmartFlow only decides when the current green ends. The order (East → South → West → North) and the 3 s yellow and 2 s all-red after every green are in the signal program, and it never changes them. With the 50 s cap, no approach waits more than 3 × 50 + 4 × 5 = 170 s for its next green.
 
@@ -272,7 +275,7 @@ Then SUMO's summary, with exact numbers because the seed is fixed:
 
 The hourly table is the timing plan SmartFlow arrives at from the traffic alone. In the morning the inbound roads (Monivong South, Charles de Gaulle West) get the long greens. In the evening the outbound ones (Monivong North, Charles de Gaulle East) catch up and the cycle stretches to 171 s. At night every green drops to the minimum and the cycle to about 62 s. The fixed plan uses 140 s all day.
 
-It also writes `out/adaptive_greens.csv`, one row per green: start time, approach, queue, green length, and whether the green ended because the queue cleared (2,547 times over the day) or because it reached 50 s (23 times). Greens that stop at the minimum show 10.5 s, because SUMO switches at the next half-second step.
+It also writes `out/adaptive_greens.csv`, one row per green: start time, approach, queue, green length, and whether the green ended because the queue cleared (2,547 times over the day) or because it reached 50 s (23 times). A third reason, "exit blocked", only appears when an exit is jammed (`blocked_exit.py`). Greens that stop at the minimum show 10.5 s, because SUMO switches at the next half-second step.
 
 ### Compare with fixed-time
 
@@ -335,10 +338,33 @@ Press ▶ in sumo-gui. The terminal prints each green as it ends, for example:
 
 Record the terminal next to the sumo-gui window, so viewers see each decision and the traffic together. To show the timings changing, right-click the traffic light (the coloured bars across a stop line) and choose **Track Phases**. It draws each phase as a bar, so SmartFlow's greens grow and shrink, while the fixed run (the step 2 command) repeats the same bars every cycle. `out/step2_gui_0713.png` (fixed) and `out/step3_gui_0713.png` (SmartFlow) show each run at 07:13.
 
+### What if the road ahead is jammed?
+
+What if one road has the longest queue, but the road beyond the junction is full, so letting it go would block the junction? SmartFlow never jumps to the longest road, because the order is fixed. But on that road's turn its queue can't clear, so rules 1–3 alone would hold its green to the maximum while nobody moves. Rule 4 ends that green instead.
+
+The model has one junction, and vehicles leave the map 275 m after crossing, so an exit never fills up on its own. `blocked_exit.py` jams one on purpose (SIMULATED). From 07:30 on the normal day, every vehicle on Monivong South's exit is stopped once it is 20 m in, for 10 minutes, so Monivong North's straight-on traffic can't cross. Three copies of the day run side by side:
+
+```bash
+.venv/bin/python blocked_exit.py     # about 1 minute; --exit, --at, --minutes and --day choose another jam
+```
+
+| During the 10-minute jam | Fixed-time | SmartFlow without the exit check | SmartFlow |
+|---|---|---|---|
+| Each Monivong N green once its exit was full | 30 s, 0 vehicles crossed | 38 s (its maximum then), 0 crossed | 10 s, 0–1 crossed |
+| Vehicles through the junction, all roads | 866 | 868 | **961 (+11%)** |
+| Vehicles waiting when the jam ended | 536 | 539 | 464 |
+| Vehicles stopped inside the junction | 0 | 0 | 0 |
+
+- Without the check, SmartFlow wastes the blocked road's green just like the fixed plan does. With it, the blocked road gets its 10 s minimum and the roads that can move get the rest.
+- **Why the check needs both signs.** My first version ended the green on "nobody has crossed for 5 s" alone. On days with no jam at all, it fired 8 to 28 times a day and made the festival day 26% worse. In the cases I looked at, every exit was empty: a moto had stalled at the stop line, which SUMO's motorbikes sometimes do, so nobody behind it crossed for a few seconds. Ending the green then left the rest of the queue waiting a whole cycle. So the check also looks at the exit itself, as a camera at the junction would. I re-ran all 30 SmartFlow days (steps 3–5) with it: it never fired, and every result in this README is unchanged.
+- No vehicle stopped inside the junction, because SUMO's drivers never enter a junction they can't leave. Real drivers in Phnom Penh often do, which locks the junction for the cross traffic too. So the check matters even more on a real street, and a real system should also hold the next green until its camera sees the junction empty.
+- The real cure is coordinating the lights along Monivong, so the next junction can say when its queue is backing up.
+
 ### Limits
 
 - SUMO sees the queue perfectly. A real camera or detector misses some vehicles, so real-world gains would be smaller.
 - SmartFlow reacts to the queue in front of it and doesn't look ahead. Step 5 adds prediction.
+- The model is one junction, so a jam from the next junction never reaches this one by itself. `blocked_exit.py` tests that case on purpose.
 - The rule's two numbers (10 s and 50 s) were tuned on this one simulated day. Step 4's rain and holiday scenarios test it on traffic it wasn't tuned on.
 
 ## Step 4: weather, holidays and what-if scenarios
@@ -575,12 +601,35 @@ No vehicles were left waiting to enter at the end of any SmartFlow run, and none
 What this shows:
 - **The forecast fixes step 4's weak spot.** In heavy rain, SmartFlow alone gave the three busy roads the same 50 s each. From 17:00 to 19:00, the forecast cut CdG East's greens (41 s on average instead of 46 s) and lengthened Monivong North's and South's (54 and 53 s instead of 50 s), while the cycles stayed the same length. Delay for vehicles arriving at 18:00 fell from 574 to 341 s, and Monivong South's from 699 to 436 s. CdG East paid for it (102 → 228 s).
 - **On the exodus day, Monivong North gets the extra time.** Its 19:00 delay fell from 1,025 to 210 s.
-- **On a normal day, it changes nothing**, as expected. Queues are short, so greens end when the queue clears, long before the maximum.
+- **On a normal day, it changes nothing**, as expected. Queues are short, so greens end when the queue clears, long before the maximum. The +0.7 s is luck: with other random seeds, the forecast comes out up to 1.9 s better (see [Is the +0.7 s on the normal day real?](#is-the-07-s-on-the-normal-day-real)).
 - **On the festival day, the gain is small (−8%)**, and Monivong South still has 15-minute delays at 18:00 (892 → 902 s). There are two reasons:
   1. Its queue reaches back past the counter at the start of the road, so the counter only sees what the queue lets through. At 17:00 it counted about 255 vehicles per 5 minutes while about 313 were coming. So the forecast underestimates the very road that needs help most.
   2. The green is shared by expected arrivals, not by vehicles already waiting. Monivong South (about 300 waiting) and CdG West (almost none) got about the same maximum, 53–63 s.
 
   A next version would share the green by queue + forecast, and count vehicles further upstream.
+
+### Is the +0.7 s on the normal day real?
+
+On the normal day, SmartFlow came out 0.7 s worse with the forecast. A run's seed fixes the random moments at which vehicles arrive, and every test day uses seed 42. So the normal day was also run with 4 other seeds: other random versions of the same day, with the same number of vehicles per hour, each with and without the forecast.
+
+```bash
+.venv/bin/python seeds.py
+```
+
+About 10 minutes, 8 runs at a time. It changes nothing in SmartFlow or the forecast, and its files go to `out/seeds/`, so the test days' results are not touched. You should see:
+
+| Normal day (simulated) | SmartFlow | SmartFlow + forecast | Forecast's effect | Greens that ran into their maximum |
+|---|---|---|---|---|
+| Seed 42 (the test day above) | 47.7 s | 48.4 s | +0.7 s | 23 → 22 |
+| Seed 1 | 50.3 s | 48.4 s | −1.9 s | 44 → 20 |
+| Seed 2 | 48.6 s | 48.6 s | 0.0 s | 27 → 36 |
+| Seed 3 | 50.6 s | 49.2 s | −1.4 s | 56 → 26 |
+| Seed 7 | 49.8 s | 50.1 s | +0.3 s | 48 → 47 |
+
+What this shows:
+- **The +0.7 s is luck.** Over the five seeds, the forecast's effect goes from 1.9 s better to 0.7 s worse, and it is 0.5 s better on average. So on a normal day it changes nothing.
+- **The forecast only matters when a green runs into its maximum**, and on a normal day that happens to at most 56 of about 2,560 greens. Where the forecast roughly halved those (seeds 1 and 3), the day got 1.4–1.9 s better. On the other three seeds their number didn't fall, and the day changed by less than 1 s.
+- Seed 7 without the forecast gives 49.8 s, the same as the seed check in step 3.
 
 ### Watch it (video, 50–65 s)
 
@@ -652,6 +701,20 @@ Record the browser window at least 1280 px wide, so the tiles aren't cut off. A 
 4. Point at the live inputs: the weather and calendar are real and work today.
 
 Don't headline the exodus figures. Fixed-time collapses on that day, so its numbers are extreme.
+
+### Recording mode (sharp footage of the junction)
+
+Cropping a junction out of the normal page and enlarging it makes the footage blurry. Recording mode draws one junction over the whole window, at the screen's full resolution, with a large clock and nothing around it, so you record the whole screen and crop nothing:
+
+http://localhost:8600/?studio&day=test1_normal&start=06:15&speed=20
+
+- It starts by itself. This address plays the normal day with SmartFlow + forecast from 06:15 until the counted day ends at 22:00.
+- `side=both` shows fixed-time and SmartFlow side by side, `side=fixed` only fixed-time, and `forecast=0` turns the forecast off.
+- `speed=` goes from 5 to 100. The whole day takes about 50 minutes at 20× and about 20 minutes at 50×, if the computer keeps up.
+- `zoom=1.5` moves closer, `hud=0` hides the clock and titles, and `labels=0` hides the queue labels on the roads.
+- Keys: Space pauses and plays, R starts again, H hides or shows the clock and titles, F goes full screen. The mouse pointer is hidden over the junction.
+
+On a Mac, press F, then Cmd+Shift+5 and "Record Entire Screen". A Retina screen records at about 2880 × 1800, more than a 1080p video needs, so the footage stays sharp after editing.
 
 ### Share it with teammates
 

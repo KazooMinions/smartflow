@@ -24,6 +24,34 @@
   #side0 .fc { display: none; }
   ol { list-style: none; margin: 0; padding: 6px 14px 14px; font: 13px/1.6 ui-monospace, Menlo, monospace; color: var(--body); min-height: 7em; }
   ol li { white-space: pre; overflow: hidden; text-overflow: ellipsis; }
+
+  /* Recording mode (?studio): the junction fills the screen at full resolution, with nothing around it to crop */
+  #hud { display: none; }
+  body.studio { overflow: hidden; background: #0E1116; }
+  body.studio, body.studio canvas { cursor: none; }
+  body.studio header, body.studio .controls, body.studio .info, body.studio footer, body.studio .side h2,
+  body.studio .stats, body.studio .now, body.studio .side table, body.studio .log { display: none; }
+  body.studio main.sides { position: fixed; inset: 0; padding: 0; gap: 6px; grid-template-columns: 1fr; }
+  body.studio.both main.sides { grid-template-columns: 1fr 1fr; }
+  body.studio .side { border: 0; border-radius: 0; box-shadow: none; background: none; }
+  body.studio canvas { height: 100vh; }
+  body.studio #hud { display: block; position: fixed; inset: 0; pointer-events: none; color: #F6F4EF;
+    font-family: system-ui, sans-serif; text-shadow: 0 2px 12px rgba(0, 0, 0, .7); }
+  #hud .clock { position: absolute; left: 3vh; top: 2.6vh; font: 700 6.6vh/1 ui-monospace, "SF Mono", Menlo, monospace;
+    font-variant-numeric: tabular-nums; }
+  body.both #hud .clock { left: 50%; transform: translateX(-50%); }
+  #hud .title { position: absolute; top: 2.8vh; right: 3vh; text-align: right; }
+  body.both #hud .t0 { right: auto; left: 3vh; text-align: left; }
+  body.both #hud .t1 { right: 3vh; }
+  body.show0 #hud .t1, body.show1 #hud .t0 { display: none; }
+  #hud .title b { display: inline-flex; align-items: center; gap: 1.3vh; font: 700 3.4vh/1.1 system-ui, sans-serif; }
+  #hud .title i { display: inline-block; width: 4.4vh; height: .8vh; border-radius: .4vh; }
+  #hud .title small { display: block; margin-top: .9vh; font: 600 2.2vh/1.2 system-ui, sans-serif; color: #D9D6CE;
+    font-variant-numeric: tabular-nums; }
+  #hud .tag { position: absolute; left: 3vh; bottom: 2.4vh; font: 500 1.9vh/1.2 system-ui, sans-serif; opacity: .8; }
+  #hud .msg { position: absolute; left: 50%; bottom: 7vh; transform: translateX(-50%); font: 600 2.4vh/1.3 system-ui, sans-serif;
+    background: rgba(20, 24, 29, .85); padding: 1vh 2vh; border-radius: 1vh; }
+  #hud .msg:empty { display: none; }
 </style>
 <script src="static/pages.js"></script>
 </head>
@@ -76,6 +104,13 @@
 are what-if scenarios. Left: the fixed-time plan gives every road the same green, cycle after cycle. Right: SmartFlow
 holds each green until its queue has cleared, and its forecast shares out the maximum greens. Motorbikes are blue,
 cars white, tuk-tuks yellow and trucks red. Scroll to zoom, drag to move, double-click to reset the view.</footer>
+<div id="hud">
+  <div class="clock">--:--</div>
+  <div class="title t0"><b><i style="background:#898781"></i>Fixed-time plan</b><small class="now0"></small></div>
+  <div class="title t1"><b><i class="key1" style="background:#EB6834"></i><span class="name1">SmartFlow + forecast</span></b><small class="now1"></small></div>
+  <div class="tag">IS-03 · Monivong × Charles de Gaulle, Phnom Penh · simulated in SUMO with JICA's 2022 traffic counts</div>
+  <div class="msg"></div>
+</div>
 <script>
 const FRAME_MS = 100;                                   // live.py sends a picture every 0.1 s
 const GROUND = "#1B2027", ROAD = "#3A4049", MARK = "rgba(255,255,255,0.28)";
@@ -90,10 +125,30 @@ let NET = null, DAYS = [], view = null, playing = false, rainMm = 0, ws = null, 
 const sides = [0, 1].map(i => ({ root: $(`#side${i}`), canvas: $(`#side${i} canvas`), prev: new Map(), curr: new Map(), at: 0, data: null }));
 const hhmm = t => `${String(Math.floor(t / 3600)).padStart(2, "0")}:${String(Math.floor(t % 3600 / 60)).padStart(2, "0")}`;
 
+// Recording mode: ?studio&day=test1_normal&start=06:15&speed=20 starts by itself, with one junction filling the screen.
+// side=both shows fixed-time and SmartFlow side by side (side=fixed only the fixed-time plan), forecast=0 turns the
+// forecast off, zoom=1.5 moves closer, hud=0 hides the clock and titles, labels=0 the queue labels on the roads.
+// Keys: Space pauses and plays, R starts again, H hides or shows the clock and titles, F goes full screen.
+const STUDIO = params.has("studio");
+const SHOW = params.get("side") === "both" ? [0, 1] : params.get("side") === "fixed" ? [0] : [1];
+const ZOOM = Number(params.get("zoom")) || 1;
+const LABEL_PX = STUDIO ? 19 : 13;
+if (STUDIO) {
+  document.body.classList.add("studio", SHOW.length === 2 ? "both" : `show${SHOW[0]}`);
+  for (const i of [0, 1]) if (!SHOW.includes(i)) $(`#side${i}`).style.display = "none";
+  if (params.get("hud") === "0") $("#hud").style.display = "none";
+  addEventListener("keydown", e => {
+    if (e.code === "Space") { e.preventDefault(); $("#play").click(); }
+    else if (e.key === "r" || e.key === "R") $("#go").click();
+    else if (e.key === "h" || e.key === "H") $("#hud").style.display = $("#hud").style.display === "none" ? "" : "none";
+    else if (e.key === "f" || e.key === "F") document.documentElement.requestFullscreen?.();
+  });
+}
+
 for (let m = 6 * 60 + 15; m <= 21 * 60 + 30; m += 15) $("#start").add(new Option(hhmm(m * 60)));
 
 function send(msg) { if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg)); }
-function status(text) { $("#status").textContent = text; }
+function status(text) { $("#status").textContent = text; $("#hud .msg").textContent = text; }
 function setPlaying(p) { playing = p; $("#play").disabled = false; $("#play").textContent = p ? "Pause" : "Play"; }
 
 function statsLink() {                                   // the Statistics page opens on the same day and time
@@ -124,6 +179,14 @@ function hello(m) {
   if ([...$("#start").options].some(o => o.value === params.get("start"))) $("#start").value = params.get("start");
   statsLink();
   status("Choose a day and a start time, then press Start.");
+  if (STUDIO) {                                          // start by itself with the settings in the address
+    $("#forecast").checked = params.get("forecast") !== "0";
+    const speed = params.get("speed") || "20";
+    if (![...$("#speed").options].some(o => o.value === speed)) $("#speed").add(new Option(`${speed}×`, speed));
+    $("#speed").value = speed;
+    send({ cmd: "speed", value: Number(speed) });
+    $("#go").click();
+  }
 }
 
 function pickDay() {
@@ -145,6 +208,8 @@ $("#go").onclick = () => {
   const withForecast = $("#forecast").checked;
   $("#side1 .title").textContent = withForecast ? "SmartFlow + forecast" : "SmartFlow";
   $("#side1 .key").style.background = withForecast ? "#EB6834" : "#2A78D6";
+  $("#hud .name1").textContent = withForecast ? "SmartFlow + forecast" : "SmartFlow";
+  $("#hud .key1").style.background = withForecast ? "#EB6834" : "#2A78D6";
   status("Starting…");
   send({ cmd: "start", day: $("#day").value, start: $("#start").value, forecast: withForecast });
 };
@@ -165,7 +230,10 @@ function frame(m) {
     side.at = performance.now();
     side.data = s;
     panel(side, s, i === 0);
+    if (STUDIO) $(`#hud .now${i}`).textContent = s.green
+      ? `Green: ${NET.names[s.green.approach]} · ${s.green.elapsed} s · ${s.waiting} waiting` : `Changing lights · ${s.waiting} waiting`;
   });
+  if (STUDIO) $("#hud .clock").textContent = m.clock.slice(0, 5);
 }
 
 function panel(side, s, fixed) {
@@ -203,7 +271,7 @@ function drawSide(side, now) {
   ctx.fillStyle = GROUND;
   ctx.fillRect(0, 0, W, H);
   if (!NET || !W) return;
-  if (!view) view = { x: 0, y: 0, s: Math.min(W, H) / 250 };
+  if (!view) view = { x: 0, y: 0, s: Math.min(W, H) / 250 * ZOOM };
   const sx = x => W / 2 + (x - view.x) * view.s, sy = y => H / 2 - (y - view.y) * view.s;
 
   ctx.lineCap = "butt"; ctx.lineJoin = "round"; ctx.strokeStyle = ROAD;
@@ -248,20 +316,23 @@ function drawSide(side, now) {
 }
 
 function labels(ctx, W, H, s, sx, sy) {
-  ctx.font = "600 13px system-ui, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  if (STUDIO && params.get("labels") === "0") return;
+  const px = LABEL_PX, h = Math.round(px * 1.85);
+  ctx.font = `600 ${px}px system-ui, sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
   const cx = sx(0), cy = sy(0), pad = 22;
+  const top = STUDIO ? H * 0.17 : pad, bottom = STUDIO ? H * 0.1 : pad;   // keep clear of the clock, titles and credit
   for (const a of ORDER) {
     const [ex, ey] = NET.arms[a];
     let dx = sx(ex) - cx, dy = sy(ey) - cy;
     const d = Math.hypot(dx, dy); dx /= d; dy /= d;
     let k = d * 0.92;                                    // as far out along the road as fits on the canvas
     if (dx > 0) k = Math.min(k, (W - pad - cx) / dx); if (dx < 0) k = Math.min(k, (pad - cx) / dx);
-    if (dy > 0) k = Math.min(k, (H - pad - cy) / dy); if (dy < 0) k = Math.min(k, (pad - cy) / dy);
+    if (dy > 0) k = Math.min(k, (H - bottom - cy) / dy); if (dy < 0) k = Math.min(k, (top - cy) / dy);
     if (!(k > 60)) continue;
-    const text = `${NET.names[a]} · ${s.queues[a]} waiting`, w = ctx.measureText(text).width + 18;
+    const text = `${NET.names[a]} · ${s.queues[a]} waiting`, w = ctx.measureText(text).width + px * 1.4;
     const x = Math.min(W - w / 2 - 4, Math.max(w / 2 + 4, cx + dx * k)), y = cy + dy * k;
     ctx.fillStyle = "rgba(20,24,29,0.85)";
-    ctx.beginPath(); ctx.roundRect(x - w / 2, y - 12, w, 24, 12); ctx.fill();
+    ctx.beginPath(); ctx.roundRect(x - w / 2, y - h / 2, w, h, h / 2); ctx.fill();
     ctx.fillStyle = "#F6F4EF"; ctx.fillText(text, x, y + 0.5);
   }
 }

@@ -10,6 +10,12 @@ The rule, for each approach in turn:
   2. The light stays green until all of those vehicles have crossed the stop line and nothing on the approach
      is standing still any more (so vehicles that joined the back of the queue are served too).
   3. Every green lasts at least 10 s and at most 50 s.
+  4. The exit check: if nobody has crossed the stop line for 5 s while vehicles on the approach are still standing
+     still, SmartFlow looks at the roads those vehicles are heading into. If one has vehicles standing still within
+     30 m of the junction, it is full (a jam spilling back from the next junction), so the green ends at once
+     instead of running to its maximum, and the time goes to roads that can move.
+     Both signs are needed: a vehicle that stalls at the stop line also stops everyone crossing for a while
+     (README step 3). blocked_exit.py tests the check by jamming an exit on purpose.
 Waiting for every queued vehicle matters because queues are uneven across lanes. Left turns use fewer lanes,
 so their part of the queue clears last.
 
@@ -27,6 +33,7 @@ Writes out/adaptive_tripinfo.xml and out/adaptive_stats.xml (the same format as 
 out/adaptive_greens.csv (every green: start time, approach, queue, length, why it ended, its maximum) and
 out/adaptive_ticks.csv (every 5 minutes and approach: vehicles that arrived, queue, maximum green, forecast).
 With --scenario NAME the files are out/NAME_adaptive_*, and with --predict "predict" replaces "adaptive".
+With --out PREFIX they are PREFIX_tripinfo.xml and so on instead (seeds.py uses this).
 Runs with --gui, -b or -e may stop early, so their files end in _partial (e.g. out/adaptive_partial_greens.csv)
 and never replace the whole-day results.
 """
@@ -43,6 +50,7 @@ from make_demand import HOURS, SATURATION
 
 TLS = "C"                       # the traffic light at the junction
 MIN_GREEN, MAX_GREEN = 10, 50   # seconds. 50 beat 40, 45 and 60 over a whole day (README step 3)
+EXIT_GAP, EXIT_NEAR = 5, 30     # nobody crossing for 5 s, and vehicles standing within 30 m on their exit: it's full
 TICK = 300                      # every 5 minutes: count arrivals, read the queues, update the forecast
 BUDGET, FORECAST_MAX = 4 * MAX_GREEN, 80   # with --predict: 200 s of maximum green per cycle, at most 80 s each
 NAMES = {"N_in": "Monivong N", "E_in": "CdG East", "S_in": "Monivong S", "W_in": "CdG West"}
@@ -77,8 +85,9 @@ class SmartFlow:
     """SmartFlow's rule on one running simulation (a TraCI connection), applied one step at a time.
     With a forecast model, every 5 minutes it also shares out the maximum greens."""
 
-    def __init__(self, conn=traci, model=None, rain_mm=None, holiday=None):
+    def __init__(self, conn=traci, model=None, rain_mm=None, holiday=None, exit_check=True):
         self.conn, self.model, self.rain_mm, self.holiday = conn, model, rain_mm or {}, holiday
+        self.exit_check = exit_check                             # rule 4 (blocked_exit.py turns it off to compare)
         if model is not None:
             import forecast
             self.predict = forecast.predict
@@ -121,17 +130,38 @@ class SmartFlow:
             if phase in self.greens:            # a new green starts
                 self.green, self.started, self.ended_by = self.greens[phase], t, "max green"
                 self.maximum = self.limit[self.green]
-                self.queue_at_start = {v for v in c.edge.getLastStepVehicleIDs(self.green)
-                                       if c.vehicle.getSpeed(v) < 0.1}
+                self.on_road = set(c.edge.getLastStepVehicleIDs(self.green))
+                self.queue_at_start = {v for v in self.on_road if c.vehicle.getSpeed(v) < 0.1}
                 self.queue = set(self.queue_at_start)
+                self.last_crossed = t
                 c.trafficlight.setPhaseDuration(TLS, self.maximum)    # SUMO ends it at the maximum ...
-        elif self.green and t - self.started >= MIN_GREEN and self.ended_by == "max green":
-            self.queue &= set(c.edge.getLastStepVehicleIDs(self.green))   # ... unless the queue clears first
-            if not self.queue and c.edge.getLastStepHaltingNumber(self.green) == 0:
-                c.trafficlight.setPhaseDuration(TLS, 0)                   # go to yellow now
-                self.ended_by = "queue cleared"
+        elif self.green and self.ended_by == "max green":
+            on_road = set(c.edge.getLastStepVehicleIDs(self.green))
+            if self.on_road - on_road:                                # someone has crossed the stop line
+                self.last_crossed = t
+            self.on_road = on_road
+            if t - self.started >= MIN_GREEN:
+                self.queue &= on_road                                 # ... unless the queue clears first
+                standing = c.edge.getLastStepHaltingNumber(self.green)
+                if not self.queue and standing == 0:
+                    c.trafficlight.setPhaseDuration(TLS, 0)           # go to yellow now
+                    self.ended_by = "queue cleared"
+                elif self.exit_check and standing and t - self.last_crossed >= EXIT_GAP and self.exit_full():
+                    c.trafficlight.setPhaseDuration(TLS, 0)           # ... or when nobody can move (rule 4)
+                    self.ended_by = "exit blocked"
         self.last_phase = phase
         return t, tick, ended
+
+    def exit_full(self):
+        """Does a road that the vehicles waiting on the green approach are heading into have vehicles standing still
+        near the junction? A camera at the junction sees the first 30 m of each exit."""
+        c, exits = self.conn, set()
+        for v in c.edge.getLastStepVehicleIDs(self.green):
+            if c.vehicle.getSpeed(v) < 0.1:
+                route, i = c.vehicle.getRoute(v), c.vehicle.getRouteIndex(v)
+                exits.update(route[i + 1:i + 2])
+        return any(c.vehicle.getSpeed(v) < 0.1 and c.vehicle.getLanePosition(v) < EXIT_NEAR
+                   for e in exits for v in c.edge.getLastStepVehicleIDs(e))
 
 
 def main():
@@ -142,8 +172,9 @@ def main():
     ap.add_argument("--scenario", help="run routes/NAME.rou.xml, a rain or holiday day made by scenario.py")
     ap.add_argument("--predict", action="store_true", help="share the maximum greens by the Random Forest forecast")
     ap.add_argument("--seed", type=int, help="SUMO random seed (default 42, from adaptive.sumocfg)")
+    ap.add_argument("--out", metavar="PREFIX", help="write PREFIX_tripinfo.xml and so on instead of the usual files in out/")
     args = ap.parse_args()
-    prefix = f"out/{args.scenario + '_' if args.scenario else ''}{'predict' if args.predict else 'adaptive'}"
+    prefix = args.out or f"out/{args.scenario + '_' if args.scenario else ''}{'predict' if args.predict else 'adaptive'}"
     if args.gui or args.begin or args.end:
         prefix += "_partial"        # may not cover the whole day, so it must not replace the whole-day results
 
